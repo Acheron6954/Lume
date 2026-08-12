@@ -1,4 +1,4 @@
-"use client";
+    "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
@@ -94,6 +94,10 @@ export default function Home() {
   const [seciliDegisimUrun, setSeciliDegisimUrun] = useState<number | null>(null);
   const [iadeNedeniAcik, setIadeNedeniAcik] = useState(false);
   const [seciliNeden, setSeciliNeden] = useState("");
+  
+  // YENİ: GEÇMİŞ ARAMA VE FİLTRELEME STATELERİ
+  const [dateFilter, setDateFilter] = useState("");
+  const [productCodeFilter, setProductCodeFilter] = useState("");
 
   // GEÇMİŞTEN DEĞİŞİM ÇEKİ ÜRETME STATELERİ
   const [cekSeciliUrunler, setCekSeciliUrunler] = useState<number[]>([]);
@@ -128,7 +132,7 @@ export default function Home() {
   const [barkodInput, setBarkodInput] = useState("");
 
   // ==============================================================
-  // YENİ: ÖDEME EKRANI (NAKİT / KREDİ KARTI) STATELERİ VE HESAPLAMALAR
+  // ÖDEME EKRANI (NAKİT / KREDİ KARTI) STATELERİ VE HESAPLAMALAR
   // ==============================================================
   const [odemeAktifSekme, setOdemeAktifSekme] = useState<"Nakit" | "Kredi Kartı">("Kredi Kartı");
   const [alinanOdemeler, setAlinanOdemeler] = useState<any[]>([]);
@@ -145,6 +149,41 @@ export default function Home() {
       setOdemeTuslananTutar(kalanOdemeTutari.toFixed(2).replace('.', ','));
     }
   }, [kalanOdemeTutari, aktifModal]);
+
+  // YENİ: SİPARİŞ GEÇMİŞİNİ TELEFON NUMARASINA GÖRE VERİTABANINDAN ÇEKME
+  useEffect(() => {
+    async function fetchSiparisGecmisi() {
+      if (showGecmisModal && searchResult?.telefon) {
+        const { data, error } = await supabase
+          .from('satislar')
+          .select('*')
+          .eq('telefon', searchResult.telefon)
+          .order('created_at', { ascending: false }); // Sol üstten (en güncel) başlatır
+
+        if (data && !error) {
+          const formattedData = data.map((item: any) => ({
+            id: item.id,
+            tarih: new Date(item.created_at).toLocaleDateString('tr-TR'),
+            urun_ismi: `[${item.urun_kodu}] ${item.urun_adi}`,
+            fiyat: item.tutar,
+            raw_date: new Date(item.created_at).toISOString().split('T')[0],
+            product_code: item.urun_kodu
+          }));
+          setGecmisSiparisler(formattedData);
+        } else {
+          setGecmisSiparisler([]);
+        }
+      }
+    }
+    fetchSiparisGecmisi();
+  }, [showGecmisModal, searchResult]);
+
+  // YENİ: TARİH VE ÜRÜN KODU FİLTRELEME MANTIĞI
+  const filteredSiparisler = gecmisSiparisler.filter(siparis => {
+    const matchDate = dateFilter ? siparis.raw_date === dateFilter : true;
+    const matchCode = productCodeFilter ? siparis.product_code?.toLowerCase().includes(productCodeFilter.toLowerCase()) : true;
+    return matchDate && matchCode;
+  });
 
   const formatFiyat = (fiyat: number) => {
     return fiyat.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -334,6 +373,18 @@ export default function Home() {
         }
       }
 
+      // YENİ: SİPARİŞ GEÇMİŞİ İÇİN SATIŞLAR TABLOSUNA ÜRÜNLERİ KAYDETME
+      for (const urun of sepetUrunleri) {
+        await supabase.from("satislar").insert([{
+          telefon: musteriBilgisi === "Kayıtsız Müşteri" ? "Kayıtsız" : searchResult.telefon,
+          isim: searchResult ? searchResult.isim : "Kayıtsız",
+          soyisim: searchResult ? searchResult.soyisim : "Müşteri",
+          urun_kodu: urun.urun_kodu || urun.barkod,
+          urun_adi: urun.isim,
+          tutar: urun.fiyat
+        }]);
+      }
+
       setTimeout(() => {
         alert("SATIŞ BAŞARIYLA ONAYLANDI VE TAHSİLAT TAMAMLANDI!");
         setSepetUrunleri([]);
@@ -483,6 +534,8 @@ export default function Home() {
     setCekSeciliUrunler([]);
     setCekSeciliPersonel("");
     setCekOlusturmaDurumu("idle");
+    setDateFilter("");
+    setProductCodeFilter("");
   };
 
   const toggleGecmisSatir = (id: number) => setSeciliGecmisSatir(seciliGecmisSatir === id ? null : id);
@@ -1330,11 +1383,22 @@ export default function Home() {
                 <div className="flex gap-4 mb-3 shrink-0">
                   <div className="flex-1 relative">
                     <svg className="w-4 h-4 t-faint absolute left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <input type="text" placeholder="TARİH ARA (Örn: 06 AĞUSTOS)..." className="field w-full pl-10 pr-4 py-2.5 text-[10px] uppercase" />
+                    <input 
+                      type="date" 
+                      value={dateFilter} 
+                      onChange={(e) => setDateFilter(e.target.value)} 
+                      className="field w-full pl-10 pr-4 py-2.5 text-xs uppercase" 
+                    />
                   </div>
                   <div className="flex-1 relative">
                     <svg className="w-4 h-4 t-faint absolute left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <input type="text" placeholder="ÜRÜN GRUBU ARA (Örn: DIŞ GİYİM)..." className="field w-full pl-10 pr-4 py-2.5 text-[10px] uppercase" />
+                    <input 
+                      type="text" 
+                      value={productCodeFilter} 
+                      onChange={(e) => setProductCodeFilter(e.target.value)} 
+                      placeholder="ÜRÜN KODU ARA..." 
+                      className="field w-full pl-10 pr-4 py-2.5 text-[10px] uppercase" 
+                    />
                   </div>
                 </div>
 
@@ -1373,8 +1437,8 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody className="paper">
-                      {gecmisSiparisler.length > 0 ? (
-                        gecmisSiparisler.map((siparis, index) => (
+                      {filteredSiparisler.length > 0 ? (
+                        filteredSiparisler.map((siparis, index) => (
                           <tr
                             key={index}
                             onClick={() => toggleGecmisSatir(index)}
@@ -1387,7 +1451,7 @@ export default function Home() {
                             </td>
                             <td className="py-4 px-4 border b-paper">{siparis.tarih}</td>
                             <td className="py-4 px-4 border b-paper">{siparis.urun_ismi}</td>
-                            <td className="py-4 px-4 border b-paper text-right">{formatFiyat(siparis.tutar)} TL</td>
+                            <td className="py-4 px-4 border b-paper text-right">{formatFiyat(siparis.fiyat)} TL</td>
                           </tr>
                         ))
                       ) : (
@@ -1945,4 +2009,4 @@ export default function Home() {
 
     </div>
   );
-}
+}s
