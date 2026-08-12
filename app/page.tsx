@@ -1,4 +1,4 @@
-    "use client";
+"use client";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
@@ -95,7 +95,7 @@ export default function Home() {
   const [iadeNedeniAcik, setIadeNedeniAcik] = useState(false);
   const [seciliNeden, setSeciliNeden] = useState("");
   
-  // YENİ: GEÇMİŞ ARAMA VE FİLTRELEME STATELERİ
+  // GEÇMİŞ ARAMA VE FİLTRELEME STATELERİ
   const [dateFilter, setDateFilter] = useState("");
   const [productCodeFilter, setProductCodeFilter] = useState("");
 
@@ -150,7 +150,7 @@ export default function Home() {
     }
   }, [kalanOdemeTutari, aktifModal]);
 
-  // YENİ: SİPARİŞ GEÇMİŞİNİ TELEFON NUMARASINA GÖRE VERİTABANINDAN ÇEKME
+  // SİPARİŞ GEÇMİŞİNİ TELEFON NUMARASINA GÖRE VERİTABANINDAN ÇEKME
   useEffect(() => {
     async function fetchSiparisGecmisi() {
       if (showGecmisModal && searchResult?.telefon) {
@@ -158,7 +158,7 @@ export default function Home() {
           .from('satislar')
           .select('*')
           .eq('telefon', searchResult.telefon)
-          .order('created_at', { ascending: false }); // Sol üstten (en güncel) başlatır
+          .order('created_at', { ascending: false });
 
         if (data && !error) {
           const formattedData = data.map((item: any) => ({
@@ -178,7 +178,7 @@ export default function Home() {
     fetchSiparisGecmisi();
   }, [showGecmisModal, searchResult]);
 
-  // YENİ: TARİH VE ÜRÜN KODU FİLTRELEME MANTIĞI
+  // TARİH VE ÜRÜN KODU FİLTRELEME MANTIĞI
   const filteredSiparisler = gecmisSiparisler.filter(siparis => {
     const matchDate = dateFilter ? siparis.raw_date === dateFilter : true;
     const matchCode = productCodeFilter ? siparis.product_code?.toLowerCase().includes(productCodeFilter.toLowerCase()) : true;
@@ -357,25 +357,27 @@ export default function Home() {
 
       for (const odeme of guncelOdemeler) {
         if (odeme.tip === "Nakit") {
-          await supabase.from("nakit_odemeler").insert([{
+          const { error } = await supabase.from("nakit_odemeler").insert([{
             satici: aktifSatici,
             musteri: musteriBilgisi,
             tutar: odeme.tutar,
             para_birimi: odeme.detay
           }]);
+          if (error) alert("NAKİT ÖDEME KAYIT HATASI: " + error.message);
         } else if (odeme.tip === "Kredi Kartı") {
-          await supabase.from("kredi_karti_odemeler").insert([{
+          const { error } = await supabase.from("kredi_karti_odemeler").insert([{
             satici: aktifSatici,
             musteri: musteriBilgisi,
             tutar: odeme.tutar,
             banka_adi: odeme.detay
           }]);
+          if (error) alert("KREDİ KARTI KAYIT HATASI: " + error.message);
         }
       }
 
-      // YENİ: SİPARİŞ GEÇMİŞİ İÇİN SATIŞLAR TABLOSUNA ÜRÜNLERİ KAYDETME
+      // HATA YAKALAYICILI SİPARİŞ GEÇMİŞİ KAYDI
       for (const urun of sepetUrunleri) {
-        await supabase.from("satislar").insert([{
+        const { error } = await supabase.from("satislar").insert([{
           telefon: musteriBilgisi === "Kayıtsız Müşteri" ? "Kayıtsız" : searchResult.telefon,
           isim: searchResult ? searchResult.isim : "Kayıtsız",
           soyisim: searchResult ? searchResult.soyisim : "Müşteri",
@@ -383,6 +385,10 @@ export default function Home() {
           urun_adi: urun.isim,
           tutar: urun.fiyat
         }]);
+
+        if (error) {
+          alert("SATIŞ GEÇMİŞİ KAYIT HATASI (Satislar Tablosu): " + error.message);
+        }
       }
 
       setTimeout(() => {
@@ -2009,4 +2015,4 @@ export default function Home() {
 
     </div>
   );
-}s
+}
