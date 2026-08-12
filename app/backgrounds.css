@@ -1,0 +1,622 @@
+/* =============================================================
+   L'UME — PREMIUM DESIGN SYSTEM
+   -------------------------------------------------------------
+   Modülün tüm renk sistemi bu dosyada tanımlıdır.
+   JSX içinde renk komutu YOKTUR; renkler yalnızca buradan yönetilir.
+   ============================================================= */
+
+:root {
+  /* ---------- ZEMİN / KOYU PALET ---------- */
+  --ink: #0b0e14;           /* ana zemin (derin gece lacivert-siyah)  */
+  --ink-soft: #0f131b;      /* ikincil zemin                            */
+  --surface: #141922;       /* kart / panel                             */
+  --surface-2: #1a202c;     /* yükseltilmiş panel                       */
+  --surface-3: #232b39;     /* hover / aktif yüzey                      */
+  --input: rgba(3, 7, 15, 0.45);   /* input zemini                      */
+
+  /* ---------- ÇİZGİLER ---------- */
+  --line-faint: rgba(255, 255, 255, 0.07);
+  --line: rgba(255, 255, 255, 0.10);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --line-glass: rgba(255, 255, 255, 0.22);
+
+  /* ---------- METİN ---------- */
+  --text: #f2f4f8;          /* ana metin                               */
+  --text-bright: #d6dbe5;   /* parlak metin                            */
+  --text-muted: #9aa3b2;    /* ikincil metin                           */
+  --text-faint: #5d6675;    /* soluk metin                             */
+
+  /* ---------- KAĞIT (AYDINLIK TABLO / SEVK EKRANI) ---------- */
+  --paper: #f6f3eb;
+  --paper-2: #ece7da;
+  --paper-ink: #1b1e25;
+  --paper-ink-muted: #727782;
+  --paper-line: #d9d3c5;
+
+  /* ---------- GÜMÜŞ (SILVER) VURGU ---------- */
+  --silver: #c6ccd6;
+  --silver-soft: #e8ebf0;
+  --blue: #5d7df5;
+  --red: #e05258;
+  --purple: #a06bf5;
+  --orange: #e09a4b;
+  --teal: #2ec4b2;
+  --yellow: #d9bc4a;
+  --cyan: #3bc1d6;
+  --indigo: #7280f0;
+  --green: #4fc58e;
+}
+
+/* =============================================================
+   EKRAN / ZEMİN
+   ============================================================= */
+
+.screen {
+  background-color: var(--ink);
+}
+
+.screen-hero {
+  background-color: var(--ink);
+  background-image: linear-gradient(120deg, var(--ink) 0%, var(--ink) 38%, var(--surface-2) 70%, #9aa3b2 100%);
+}
+
+.overlay {
+  background-color: rgba(4, 7, 12, 0.82);
+}
+
+.overlay-soft {
+  background-color: rgba(4, 7, 12, 0.68);
+}
+
+.overlay-strong {
+  background-color: rgba(3, 6, 10, 0.92);
+}
+
+/* =============================================================
+   YÜZEYLER / KARTLAR
+   ============================================================= */
+
+.surface {
+  background-color: var(--surface);
+}
+
+.surface-2 {
+  background-color: var(--surface-2);
+}
+
+.surface-3 {
+  background-color: var(--surface-3);
+}
+
+.input-dark {
+  background-color: var(--input);
+}
+
+.glass {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.glass-2 {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+.shell {
+  background-color: rgba(0, 0, 0, 0.40);
+}
+
+.bg-ink {
+  background-color: var(--ink);
+}
+
+/* Aydınlık kağıt yüzeyler */
+.paper {
+  background-color: var(--paper);
+}
+
+.paper-2 {
+  background-color: var(--paper-2);
+}
+
+.paper-white {
+  background-color: #ffffff;
+}
+
+.spinner-purple {
+  border: 4px solid rgba(160, 107, 245, 0.22);
+  border-top-color: var(--purple);
+  border-radius: 9999px;
+}
+
+/* =============================================================
+   METİN
+   ============================================================= */
+
+.t-text { color: var(--text); }
+.t-bright { color: var(--text-bright); }
+.t-muted { color: var(--text-muted); }
+.t-faint { color: var(--text-faint); }
+.t-ink { color: var(--paper-ink); }
+.t-ink-muted { color: var(--paper-ink-muted); }
+
+/* =============================================================
+   ÇİZGİLER (BORDER COLOR)
+   ============================================================= */
+
+.b-faint { border-color: var(--line-faint); }
+.b-line { border-color: var(--line); }
+.b-strong { border-color: var(--line-strong); }
+.b-glass { border-color: var(--line-glass); }
+.b-paper { border-color: var(--paper-line); }
+
+/* =============================================================
+   YEREL ETKİLEŞİM DURUMLARI
+   ============================================================= */
+
+.hover-surface:hover { background-color: var(--surface-3); }
+.hover-glass:hover { background-color: rgba(255, 255, 255, 0.06); }
+.hover-glass-2:hover { background-color: rgba(255, 255, 255, 0.12); }
+.hover-bright:hover { color: var(--text); }
+.hover-border-strong:hover { border-color: var(--line-strong); }
+
+/* Group hover (custom sınıflar) */
+.group:hover .group-hover\:t-text { color: var(--text); }
+.group:hover .group-hover\:t-bright { color: var(--text-bright); }
+.group:hover .group-hover\:t-green { color: var(--green); }
+.group:hover .group-hover\:t-blue { color: var(--blue); }
+.group:hover .group-hover\:t-purple { color: var(--purple); }
+
+.hover-brighten {
+  transition: filter 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.hover-brighten:hover {
+  filter: brightness(1.08);
+}
+
+/* Global placeholder tonu */
+::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+
+.placeholder-faint::placeholder {
+  color: var(--text-faint);
+}
+
+.input-paper::placeholder {
+  color: #a8a29a;
+}
+
+/* =============================================================
+   VURGU RENK SİSTEMİ
+   ============================================================= */
+
+/* SILVER */
+.t-silver { color: var(--silver); }
+.bg-silver { background-color: var(--silver); }
+.bg-silver-soft { background-color: rgba(198, 204, 214, 0.12); }
+.bg-silver-soft2 { background-color: rgba(198, 204, 214, 0.22); }
+.b-silver { border-color: rgba(198, 204, 214, 0.5); }
+.b-silver-soft { border-color: rgba(198, 204, 214, 0.3); }
+.glow-silver { box-shadow: 0 0 24px rgba(198, 204, 214, 0.22); }
+.hover-silver:hover { background-color: rgba(198, 204, 214, 0.16); }
+
+/* BLUE */
+.t-blue { color: var(--blue); }
+.bg-blue { background-color: var(--blue); }
+.bg-blue-soft { background-color: rgba(93, 125, 245, 0.12); }
+.bg-blue-soft2 { background-color: rgba(93, 125, 245, 0.22); }
+.b-blue { border-color: rgba(93, 125, 245, 0.5); }
+.b-blue-soft { border-color: rgba(93, 125, 245, 0.3); }
+.glow-blue { box-shadow: 0 0 24px rgba(93, 125, 245, 0.22); }
+.hover-blue:hover { background-color: rgba(93, 125, 245, 0.18); }
+.bg-blue-soft2-strong { background-color: rgba(93, 125, 245, 0.28); }
+
+/* RED */
+.t-red { color: var(--red); }
+.bg-red { background-color: var(--red); }
+.bg-red-soft { background-color: rgba(224, 82, 88, 0.12); }
+.bg-red-soft2 { background-color: rgba(224, 82, 88, 0.22); }
+.b-red { border-color: rgba(224, 82, 88, 0.5); }
+.b-red-soft { border-color: rgba(224, 82, 88, 0.3); }
+.glow-red { box-shadow: 0 0 24px rgba(224, 82, 88, 0.22); }
+.hover-red:hover { background-color: rgba(224, 82, 88, 0.18); }
+
+/* PURPLE */
+.t-purple { color: var(--purple); }
+.bg-purple { background-color: var(--purple); }
+.bg-purple-soft { background-color: rgba(160, 107, 245, 0.12); }
+.bg-purple-soft2 { background-color: rgba(160, 107, 245, 0.22); }
+.b-purple { border-color: rgba(160, 107, 245, 0.5); }
+.b-purple-soft { border-color: rgba(160, 107, 245, 0.3); }
+.glow-purple { box-shadow: 0 0 24px rgba(160, 107, 245, 0.22); }
+.hover-purple:hover { background-color: rgba(160, 107, 245, 0.18); }
+
+/* ORANGE */
+.t-orange { color: var(--orange); }
+.bg-orange { background-color: var(--orange); }
+.bg-orange-soft { background-color: rgba(224, 154, 75, 0.12); }
+.bg-orange-soft2 { background-color: rgba(224, 154, 75, 0.22); }
+.b-orange { border-color: rgba(224, 154, 75, 0.5); }
+.b-orange-soft { border-color: rgba(224, 154, 75, 0.3); }
+.glow-orange { box-shadow: 0 0 24px rgba(224, 154, 75, 0.22); }
+.hover-orange:hover { background-color: rgba(224, 154, 75, 0.18); }
+
+/* TEAL */
+.t-teal { color: var(--teal); }
+.bg-teal { background-color: var(--teal); }
+.bg-teal-soft { background-color: rgba(46, 196, 178, 0.12); }
+.bg-teal-soft2 { background-color: rgba(46, 196, 178, 0.22); }
+.b-teal { border-color: rgba(46, 196, 178, 0.5); }
+.b-teal-soft { border-color: rgba(46, 196, 178, 0.3); }
+.glow-teal { box-shadow: 0 0 24px rgba(46, 196, 178, 0.22); }
+.hover-teal:hover { background-color: rgba(46, 196, 178, 0.18); }
+
+/* YELLOW */
+.t-yellow { color: var(--yellow); }
+.bg-yellow { background-color: var(--yellow); }
+.bg-yellow-soft { background-color: rgba(217, 188, 74, 0.12); }
+.bg-yellow-soft2 { background-color: rgba(217, 188, 74, 0.22); }
+.b-yellow { border-color: rgba(217, 188, 74, 0.5); }
+.b-yellow-soft { border-color: rgba(217, 188, 74, 0.3); }
+.glow-yellow { box-shadow: 0 0 24px rgba(217, 188, 74, 0.22); }
+.hover-yellow:hover { background-color: rgba(217, 188, 74, 0.18); }
+
+/* CYAN */
+.t-cyan { color: var(--cyan); }
+.bg-cyan { background-color: var(--cyan); }
+.bg-cyan-soft { background-color: rgba(59, 193, 214, 0.12); }
+.bg-cyan-soft2 { background-color: rgba(59, 193, 214, 0.22); }
+.b-cyan { border-color: rgba(59, 193, 214, 0.5); }
+.b-cyan-soft { border-color: rgba(59, 193, 214, 0.3); }
+.glow-cyan { box-shadow: 0 0 24px rgba(59, 193, 214, 0.22); }
+.hover-cyan:hover { background-color: rgba(59, 193, 214, 0.18); }
+
+/* INDIGO */
+.t-indigo { color: var(--indigo); }
+.bg-indigo { background-color: var(--indigo); }
+.bg-indigo-soft { background-color: rgba(114, 128, 240, 0.12); }
+.bg-indigo-soft2 { background-color: rgba(114, 128, 240, 0.22); }
+.b-indigo { border-color: rgba(114, 128, 240, 0.5); }
+.b-indigo-soft { border-color: rgba(114, 128, 240, 0.3); }
+.glow-indigo { box-shadow: 0 0 24px rgba(114, 128, 240, 0.22); }
+.hover-indigo:hover { background-color: rgba(114, 128, 240, 0.18); }
+
+/* GREEN */
+.t-green { color: var(--green); }
+.bg-green { background-color: var(--green); }
+.bg-green-soft { background-color: rgba(79, 197, 142, 0.12); }
+.bg-green-soft2 { background-color: rgba(79, 197, 142, 0.22); }
+.b-green { border-color: rgba(79, 197, 142, 0.5); }
+.b-green-soft { border-color: rgba(79, 197, 142, 0.3); }
+.glow-green { box-shadow: 0 0 24px rgba(79, 197, 142, 0.22); }
+.hover-green:hover { background-color: rgba(79, 197, 142, 0.18); }
+.bg-green-soft2-strong { background-color: rgba(79, 197, 142, 0.28); }
+
+/* =============================================================
+   YARDIMCI İÇ GÖLGE / DERİNLİK
+   ============================================================= */
+
+.inset-soft {
+  box-shadow: inset 0 2px 16px rgba(0, 0, 0, 0.24);
+}
+
+.inset-paper {
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.10);
+}
+
+.shadow-deep {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.shadow-panel {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* =============================================================
+   LOGIN (PREMIUM - SILVER)
+   ============================================================= */
+
+.screen-login {
+  background-color: var(--ink);
+  background-image:
+    radial-gradient(ellipse at top left, rgba(198, 204, 214, 0.12), transparent 55%),
+    radial-gradient(ellipse at bottom right, rgba(93, 125, 245, 0.18), transparent 55%),
+    linear-gradient(180deg, transparent 0%, rgba(11, 14, 20, 0.72) 100%);
+}
+
+.login-card {
+  background-color: rgba(20, 25, 34, 0.72);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+
+.login-monogram {
+  color: var(--silver);
+  border-color: rgba(198, 204, 214, 0.5);
+  box-shadow: 0 0 30px rgba(198, 204, 214, 0.15);
+}
+
+.login-subtitle {
+  color: var(--text-muted);
+}
+
+.login-divider {
+  background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+}
+
+.btn-silver {
+  background: linear-gradient(90deg, var(--silver), var(--silver-soft));
+  color: var(--ink);
+  box-shadow: 0 10px 30px rgba(198, 204, 214, 0.22);
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-silver:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 14px 38px rgba(198, 204, 214, 0.3);
+}
+
+/* =============================================================
+   GENEL BİLEŞENLER
+   ============================================================= */
+
+.field {
+  background-color: var(--input);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  outline: none;
+  border-radius: 0.75rem;
+  transition: border-color 0.2s ease;
+}
+
+.field:focus {
+  border-color: var(--silver);
+}
+
+.field-paper {
+  background-color: #ffffff;
+  border: 1px solid var(--paper-line);
+  color: var(--paper-ink);
+  outline: none;
+  border-radius: 0.75rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field-paper:focus {
+  border-color: var(--paper-ink-muted);
+}
+
+.select-paper:focus {
+  border-color: var(--paper-ink-muted);
+}
+
+.watermark {
+  color: #2a2520;
+}
+
+/* ---------- MENÜ ELEMANLARI ---------- */
+.menu-item {
+  cursor: pointer;
+}
+
+.menu-title {
+  color: var(--text);
+  font-weight: 100;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.35);
+  transition: text-shadow 0.3s ease;
+}
+
+.menu-pill {
+  color: var(--text);
+  border: 1px solid var(--line-glass);
+  background-color: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  text-align: center;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.menu-item:hover .menu-title {
+  text-shadow: 0 0 26px rgba(255, 255, 255, 0.7);
+}
+
+.menu-item:hover .menu-pill {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.22);
+}
+
+.menu-title-active {
+  color: var(--text);
+  font-weight: 100;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.55);
+}
+
+.menu-pill-active {
+  color: var(--text);
+  border: 1px solid var(--line-glass);
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  text-align: center;
+}
+
+/* ---------- MODAL / PANEL ---------- */
+.panel {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+
+.panel-accent {
+  background-color: var(--surface);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- BUTONLAR ---------- */
+.btn-ghost {
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background-color: var(--surface-3);
+  border-color: var(--line-glass);
+}
+
+.btn-solid {
+  color: var(--ink);
+  transition: filter 0.2s ease;
+}
+
+.btn-solid:hover {
+  filter: brightness(1.08);
+}
+
+/* ---------- TABLO (AYDINLIK) ---------- */
+.paper-head {
+  background-color: var(--paper-2);
+  color: var(--paper-ink-muted);
+}
+
+.paper-row-hover:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* =============================================================
+   TAHSİLAT (ÖDEME) EKRANI — PREMIUM (SILVER)
+   ============================================================= */
+
+.pay-panel {
+  background: linear-gradient(160deg, rgba(26, 32, 44, 0.97), rgba(15, 19, 27, 0.99));
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  color: var(--text);
+}
+
+.pay-header-title {
+  color: var(--silver);
+}
+
+.pay-list {
+  background-color: rgba(3, 7, 15, 0.42);
+  border: 1px solid var(--line-faint);
+}
+
+.pay-list-label {
+  color: var(--text-faint);
+}
+
+.pay-item {
+  background-color: var(--surface-3);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.pay-item-muted {
+  color: var(--text-faint);
+}
+
+.pay-label {
+  color: var(--text-muted);
+}
+
+.pay-select {
+  background-color: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  outline: none;
+}
+
+.pay-select:focus {
+  border-color: var(--silver);
+}
+
+.pay-amount-box {
+  background: linear-gradient(135deg, rgba(3, 7, 15, 0.55), rgba(11, 14, 20, 0.8));
+  border: 1px solid var(--line-strong);
+  box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.3);
+}
+
+.pay-amount {
+  color: var(--silver-soft);
+}
+
+.pay-amount-unit {
+  color: var(--text-muted);
+}
+
+.pay-display {
+  background: linear-gradient(135deg, rgba(3, 7, 15, 0.7), rgba(11, 14, 20, 0.9));
+  border: 1px solid var(--line-strong);
+  box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.35);
+}
+
+.pay-display-input {
+  color: var(--silver-soft);
+}
+
+.pay-key {
+  background-color: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.pay-key:hover {
+  background-color: var(--surface-3);
+  border-color: var(--line-glass);
+}
+
+.pay-key-comma {
+  background-color: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  color: var(--text-bright);
+}
+
+.pay-key-comma:hover {
+  background-color: var(--surface-3);
+  border-color: var(--line-glass);
+}
+
+.pay-key-sil {
+  background-color: rgba(224, 82, 88, 0.12);
+  border: 1px solid rgba(224, 82, 88, 0.3);
+  color: var(--red);
+}
+
+.pay-key-sil:hover {
+  background-color: rgba(224, 82, 88, 0.22);
+}
+
+.pay-submit {
+  background: linear-gradient(90deg, var(--silver), var(--silver-soft));
+  color: var(--ink);
+  box-shadow: 0 10px 30px rgba(198, 204, 214, 0.24);
+}
+
+.pay-submit:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 14px 38px rgba(198, 204, 214, 0.32);
+}
+
+.pay-tab {
+  background-color: rgba(3, 7, 15, 0.35);
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
+}
+
+.pay-tab:hover {
+  border-color: var(--line-glass);
+  color: var(--text);
+}
+
+.pay-tab-active {
+  background: linear-gradient(90deg, var(--silver), var(--silver-soft));
+  border: 1px solid transparent;
+  color: var(--ink);
+  box-shadow: 0 10px 28px rgba(198, 204, 214, 0.28);
+}
