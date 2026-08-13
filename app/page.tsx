@@ -1085,18 +1085,18 @@ export default function Home() {
       {aktifModal === "odeme_ekrani" && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center animate-fade-in p-4" style={{ zIndex: 9999 }}>
           
-          <div className="bg-[#EFEAE2] w-[700px] rounded-[2rem] p-8 shadow-2xl relative flex flex-col font-sans">
+          <div className="bg-[#EFEAE2] w-[95vw] h-[95vh] rounded-[2rem] p-8 shadow-2xl relative flex flex-col font-sans">
             
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black tracking-widest uppercase text-gray-800">TAHSİLAT EKRANI</h2>
-              <button onClick={handleOdemeModalKapat} className="bg-red-600 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center text-lg shadow-md hover:bg-red-700 transition-transform active:scale-95">
+              <h2 className="text-3xl font-black tracking-widest uppercase text-gray-800">TAHSİLAT EKRANI</h2>
+              <button onClick={handleOdemeModalKapat} className="bg-red-600 text-white w-10 h-10 rounded-full font-bold flex items-center justify-center text-xl shadow-md hover:bg-red-700 transition-transform active:scale-95">
                 X
               </button>
             </div>
 
             {/* Alınan Ödemeler Listesi */}
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mb-6 flex flex-col min-h-[100px] max-h-[140px] overflow-y-auto">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 mb-6 flex flex-col min-h-[130px] max-h-[190px] overflow-y-auto">
               {alinanOdemeler.length === 0 ? (
                 <span className="text-gray-400 font-bold tracking-widest text-xs uppercase pl-2 mt-2">ALINAN ÖDEMELER</span>
               ) : (
@@ -1111,15 +1111,15 @@ export default function Home() {
               )}
             </div>
 
-            <div className="flex gap-6">
+            <div className="flex gap-8 flex-1 min-h-0">
               {/* Left Column */}
               <div className="flex-1 flex flex-col justify-between">
                 
                 {odemeAktifSekme === 'Kredi Kartı' ? (
                   <div>
-                    <label className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-2 block">BANKA SEÇİNİZ</label>
+                    <label className="text-gray-500 font-bold text-sm uppercase tracking-widest mb-3 block">BANKA SEÇİNİZ</label>
                     <select 
-                      className="w-full p-3 rounded-xl border border-gray-200 bg-white font-bold text-gray-800 outline-none focus:border-gray-400 transition-colors shadow-sm"
+                      className="w-full p-5 rounded-xl border border-gray-200 bg-white font-bold text-lg text-gray-800 outline-none focus:border-gray-400 transition-colors shadow-sm"
                       value={odemeSeciliBanka}
                       onChange={(e) => setOdemeSeciliBanka(e.target.value)}
                     >
@@ -1128,9 +1128,9 @@ export default function Home() {
                   </div>
                 ) : (
                   <div>
-                    <label className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-2 block">PARA BİRİMİ SEÇİNİZ</label>
+                    <label className="text-gray-500 font-bold text-sm uppercase tracking-widest mb-3 block">PARA BİRİMİ SEÇİNİZ</label>
                     <select 
-                      className="w-full p-3 rounded-xl border border-gray-200 bg-white font-bold text-gray-800 outline-none focus:border-gray-400 transition-colors shadow-sm"
+                      className="w-full p-5 rounded-xl border border-gray-200 bg-white font-bold text-lg text-gray-800 outline-none focus:border-gray-400 transition-colors shadow-sm"
                       value={odemeSeciliDoviz}
                       onChange={(e) => setOdemeSeciliDoviz(e.target.value)}
                     >
@@ -1140,16 +1140,16 @@ export default function Home() {
                 )}
 
                 {/* Kalan Bakiye Box */}
-                <div className="bg-[#E4E7ED] rounded-2xl p-5 border border-gray-300 mt-auto">
-                  <span className="text-gray-500 font-bold text-[10px] uppercase tracking-widest block mb-1">KALAN BAKİYE</span>
-                  <span className="text-4xl font-black text-red-600 tracking-tight">{formatFiyat(kalanOdemeTutari)} <span className="text-xl">TL</span></span>
+                <div className="bg-[#E4E7ED] rounded-2xl p-8 border border-gray-300 mt-auto">
+                  <span className="text-gray-500 font-bold text-xs uppercase tracking-widest block mb-2">KALAN BAKİYE</span>
+                  <span className="text-6xl font-black text-red-600 tracking-tight">{formatFiyat(kalanOdemeTutari)} <span className="text-3xl">TL</span></span>
                 </div>
               </div>
 
               {/* Right Column: Numpad */}
-              <div className="w-[280px] flex flex-col gap-3">
+              <div className="w-[380px] flex flex-col gap-4">
                 
-                <div className="bg-white p-5 rounded-2xl text-right text-3xl font-black border border-gray-200 shadow-sm text-gray-800 flex justify-end items-center relative">
+                <div className="bg-white p-6 rounded-2xl text-right text-4xl font-black border border-gray-200 shadow-sm text-gray-800 flex justify-end items-center relative">
                   <input 
                     type="text" 
                     value={odemeTuslananTutar} 
@@ -1160,31 +1160,31 @@ export default function Home() {
                       if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join('');
                       setOdemeTuslananTutar(val);
                     }}
-                    className="w-full text-right outline-none bg-transparent pr-10 font-black text-3xl"
+                    className="w-full text-right outline-none bg-transparent pr-12 font-black text-4xl"
                     placeholder="0"
                     autoFocus
                   />
-                  <span className="text-gray-400 text-xl font-bold absolute right-5 pointer-events-none">TL</span>
+                  <span className="text-gray-400 text-2xl font-bold absolute right-5 pointer-events-none">TL</span>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-3">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                     <button 
                       key={num} 
                       onClick={() => handleOdemeTuslama(num.toString())} 
-                      className="bg-white border border-gray-200 shadow-sm rounded-xl py-3 text-xl font-bold text-gray-800 hover:bg-gray-50 transition-colors active:scale-95"
+                      className="bg-white border border-gray-200 shadow-sm rounded-xl py-6 text-2xl font-bold text-gray-800 hover:bg-gray-50 transition-colors active:scale-95"
                     >
                       {num}
                     </button>
                   ))}
-                  <button onClick={() => handleOdemeTuslama(',')} className="bg-[#D1D5DB] border border-gray-300 shadow-sm rounded-xl py-3 text-2xl font-bold text-gray-800 hover:bg-gray-400 transition-colors active:scale-95">,</button>
-                  <button onClick={() => handleOdemeTuslama('0')} className="bg-white border border-gray-200 shadow-sm rounded-xl py-3 text-xl font-bold text-gray-800 hover:bg-gray-50 transition-colors active:scale-95">0</button>
-                  <button onClick={handleOdemeSil} className="bg-[#FEE2E2] border border-red-200 shadow-sm rounded-xl py-3 text-lg font-black text-red-600 hover:bg-red-200 transition-colors active:scale-95">SİL</button>
+                  <button onClick={() => handleOdemeTuslama(',')} className="bg-[#D1D5DB] border border-gray-300 shadow-sm rounded-xl py-6 text-3xl font-bold text-gray-800 hover:bg-gray-400 transition-colors active:scale-95">,</button>
+                  <button onClick={() => handleOdemeTuslama('0')} className="bg-white border border-gray-200 shadow-sm rounded-xl py-6 text-2xl font-bold text-gray-800 hover:bg-gray-50 transition-colors active:scale-95">0</button>
+                  <button onClick={handleOdemeSil} className="bg-[#FEE2E2] border border-red-200 shadow-sm rounded-xl py-6 text-xl font-black text-red-600 hover:bg-red-200 transition-colors active:scale-95">SİL</button>
                 </div>
                 
                 <button 
                   onClick={handleOdemeEkle} 
-                  className="bg-black text-white py-4 rounded-xl font-black tracking-widest text-md hover:bg-gray-800 transition-colors shadow-lg active:scale-95 uppercase mt-1"
+                  className="bg-black text-white py-6 rounded-xl font-black tracking-widest text-xl hover:bg-gray-800 transition-colors shadow-lg active:scale-95 uppercase mt-1"
                 >
                   ÖDEMEYİ AL
                 </button>
@@ -1192,16 +1192,16 @@ export default function Home() {
             </div>
 
             {/* Bottom Tabs */}
-            <div className="flex gap-4 mt-6">
+            <div className="flex gap-6 mt-8">
               <button 
                 onClick={() => setOdemeAktifSekme('Nakit')}
-                className={`flex-1 py-4 rounded-xl font-black tracking-widest uppercase transition-all shadow-sm border ${odemeAktifSekme === 'Nakit' ? 'bg-[#00B14F] border-[#00B14F] text-white shadow-[0_4px_15px_rgba(0,177,79,0.3)]' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                className={`flex-1 py-6 rounded-xl font-black tracking-widest text-lg uppercase transition-all shadow-sm border ${odemeAktifSekme === 'Nakit' ? 'bg-[#00B14F] border-[#00B14F] text-white shadow-[0_4px_15px_rgba(0,177,79,0.3)]' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
               >
                 NAKİT ÖDEME
               </button>
               <button 
                 onClick={() => setOdemeAktifSekme('Kredi Kartı')}
-                className={`flex-1 py-4 rounded-xl font-black tracking-widest uppercase transition-all shadow-sm border ${odemeAktifSekme === 'Kredi Kartı' ? 'bg-[#00B14F] border-[#00B14F] text-white shadow-[0_4px_15px_rgba(0,177,79,0.3)]' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                className={`flex-1 py-6 rounded-xl font-black tracking-widest text-lg uppercase transition-all shadow-sm border ${odemeAktifSekme === 'Kredi Kartı' ? 'bg-[#00B14F] border-[#00B14F] text-white shadow-[0_4px_15px_rgba(0,177,79,0.3)]' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
               >
                 KREDİ KARTI
               </button>
