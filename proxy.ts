@@ -1,12 +1,17 @@
 // Next 16'da "middleware" yerine "proxy". Oturumu olmayan herkes /giris'e gider.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, readConfig, readSession } from "@/lib/auth";
+import { SESSION_COOKIE, cronAuthorized, readConfig, readSession } from "@/lib/auth";
 
 export function proxy(request: NextRequest) {
   const cfg = readConfig();
   const session = cfg ? readSession(request.cookies.get(SESSION_COOKIE)?.value, cfg.secret) : null;
   const onLogin = request.nextUrl.pathname === "/giris";
+
+  // Günlük aday arama: Vercel Cron oturum açamaz, gizli anahtarla gelir (rota da ayrıca doğrular).
+  if (request.nextUrl.pathname === "/api/discover" && cronAuthorized(request.headers.get("authorization"))) {
+    return NextResponse.next();
+  }
 
   if (!session && !onLogin) {
     const url = request.nextUrl.clone();

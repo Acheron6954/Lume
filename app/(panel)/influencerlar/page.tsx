@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { DualBar, Scatter, type ScatterPoint } from "@/components/charts";
 import { Icon } from "@/components/icons";
@@ -14,6 +15,31 @@ export default function Influencers() {
   const { all, state, dispatch, hydrated, warningsFor } = usePanel();
   const [query, setQuery] = useState("");
   const [hover, setHover] = useState<string | null>(null);
+  const router = useRouter();
+  const [searching, setSearching] = useState(false);
+  const [searchMsg, setSearchMsg] = useState<string | null>(null);
+
+  // Web'de yeni aday arar, listeye ekler ve Instagram'dan doğrular. Mail/DM göndermez.
+  async function searchCandidates() {
+    setSearching(true);
+    setSearchMsg(null);
+    try {
+      const res = await fetch("/api/discover", { cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Arama başarısız");
+      const { discovery: dsc, scan } = json;
+      const parts = [`${dsc.added} yeni aday eklendi`];
+      if (scan) parts.push(`${scan.ok} doğrulandı`);
+      if (dsc.stoppedBy) parts.push(dsc.stoppedBy);
+      if (scan?.stoppedBy) parts.push(scan.stoppedBy);
+      setSearchMsg(parts.join(" · "));
+      router.refresh();
+    } catch (e) {
+      setSearchMsg(e instanceof Error ? e.message : "Arama başarısız");
+    } finally {
+      setSearching(false);
+    }
+  }
 
   const excluded = useMemo(() => new Set(state.excluded), [state.excluded]);
   const selected = useMemo(() => new Set(state.selected), [state.selected]);
@@ -47,6 +73,16 @@ export default function Influencers() {
         <div>
           <p className="eyebrow">Ajanın bulduğu hesaplar</p>
           <h1 className="h1">Influencerlar</h1>
+        </div>
+        <div>
+          <button type="button" className="btn btn-primary" onClick={searchCandidates} disabled={searching}>
+            {searching ? "Aranıyor…" : "Aday ara"}
+          </button>
+          {searchMsg && (
+            <p className="muted" role="status" style={{ marginTop: 6 }}>
+              {searchMsg}
+            </p>
+          )}
         </div>
       </header>
 

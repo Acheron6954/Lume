@@ -43,6 +43,13 @@ export function checkCredentials(username: string, password: string, cfg: AuthCo
   return userOk && passOk;
 }
 
+/** Vercel Cron, CRON_SECRET tanımlıysa "Authorization: Bearer <gizli>" başlığıyla çağırır. */
+export function cronAuthorized(header: string | null | undefined, env: Record<string, string | undefined> = process.env): boolean {
+  const secret = env.CRON_SECRET?.trim();
+  if (!secret || secret.length < 16 || !header) return false;
+  return timingSafeEqual(digest(header), digest(`Bearer ${secret}`));
+}
+
 export function signSession(user: string, secret: string, now = Date.now()): string {
   const payload = Buffer.from(JSON.stringify({ u: user, exp: now + SESSION_MAX_AGE * 1000 })).toString("base64url");
   const sig = createHmac("sha256", secret).update(payload).digest("base64url");
