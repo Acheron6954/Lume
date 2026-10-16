@@ -176,3 +176,27 @@ export const needsContact = (text: string): boolean => text.includes(CONTACT_PLA
 
 /** Basit ama sağlam e-posta denetimi: boşluk yok, tek @, alan adında nokta. */
 export const isEmail = (v: string): boolean => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(v.trim()) && v.trim().length <= 120;
+
+// --- Sıralama ---------------------------------------------------------------
+export type SortKey = "followers" | "avgLikes" | "engagement";
+export type SortDir = "desc" | "asc";
+
+function sortValue(i: Influencer, key: SortKey): number | null {
+  if (key === "followers") return i.followers;
+  if (key === "avgLikes") return i.verified ? i.avgLikes : null; // doğrulanmamışta 0 gerçek veri değil
+  return i.engagement;
+}
+
+/** Listeyi sıralar (kopya döner). Verisi olmayan hesaplar yönden bağımsız hep sona gider. */
+export function sortInfluencers(list: Influencer[], key: SortKey | null, dir: SortDir): Influencer[] {
+  if (!key) return list;
+  const sign = dir === "desc" ? -1 : 1;
+  return [...list].sort((a, b) => {
+    const x = sortValue(a, key);
+    const y = sortValue(b, key);
+    if (x === null && y === null) return 0;
+    if (x === null) return 1;
+    if (y === null) return -1;
+    return (x - y) * sign;
+  });
+}

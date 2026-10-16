@@ -84,3 +84,19 @@ test("e-posta denetimi", async () => {
   for (const ok of ["a@b.co", " ayse@example.com ", "a.b+c@mail.example.com.tr"]) assert.equal(isEmail(ok), true, ok);
   for (const bad of ["", "a@", "@b.co", "a@b", "a b@c.de", "a@@b.co", "a@b..co", "a@.co"]) assert.equal(isEmail(bad), false, bad);
 });
+
+import { sortInfluencers } from "../lib/influencer";
+
+test("sıralama: çoktan aza / azdan çoğa, verisi olmayanlar hep sonda, orijinal liste değişmez", () => {
+  const base = SAMPLE_INFLUENCERS[0];
+  const mk = (id: string, f: number, e: number | null, verified = true, likes = 100): typeof base => ({ ...base, id, followers: f, engagement: e, verified, avgLikes: likes });
+  const list = [mk("a", 20_000, 0.02), mk("b", 50_000, null), mk("c", 10_000, 0.05), mk("d", 30_000, 0.01, false, 0)];
+  assert.deepEqual(sortInfluencers(list, "followers", "desc").map((i) => i.id), ["b", "d", "a", "c"]);
+  assert.deepEqual(sortInfluencers(list, "followers", "asc").map((i) => i.id), ["c", "a", "d", "b"]);
+  assert.deepEqual(sortInfluencers(list, "engagement", "desc").map((i) => i.id), ["c", "a", "d", "b"]);
+  assert.equal(sortInfluencers(list, "engagement", "asc").at(-1)?.id, "b");
+  assert.equal(sortInfluencers(list, "avgLikes", "asc").at(-1)?.id, "d");
+  assert.equal(sortInfluencers(list, "avgLikes", "desc").at(-1)?.id, "d");
+  assert.equal(sortInfluencers(list, null, "desc"), list);
+  assert.deepEqual(list.map((i) => i.id), ["a", "b", "c", "d"]);
+});

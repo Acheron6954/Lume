@@ -1742,3 +1742,16 @@ html.intro-done .scatter .pt {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== Influencer sıralama düğmeleri ===== */
+.sortbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sortbar .btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}

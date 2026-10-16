@@ -5,21 +5,32 @@ import { DualBar, Scatter, type ScatterPoint } from "@/components/charts";
 import { Icon } from "@/components/icons";
 import { usePanel } from "@/components/panel-store";
 import { TransitionLink } from "@/components/transition-link";
-import { WARNING_LABEL, fmtCount, fmtDay, fmtRate, profileUrl, type Influencer } from "@/lib/influencer";
+import { WARNING_LABEL, fmtCount, fmtDay, fmtRate, profileUrl, sortInfluencers, type Influencer, type SortDir, type SortKey } from "@/lib/influencer";
 import { d } from "@/lib/ui";
 
 const FOLLOWER_STEPS = [5000, 10000, 15000, 20000, 30000, 50000];
 const RATIO_STEPS = [0, 0.005, 0.01, 0.015, 0.02, 0.03];
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: "followers", label: "Takipçi" },
+  { key: "avgLikes", label: "Ort. beğeni" },
+  { key: "engagement", label: "Etkileşim" },
+];
 
 export default function Influencers() {
   const { all, state, dispatch, hydrated, warningsFor } = usePanel();
   const [query, setQuery] = useState("");
   const [hover, setHover] = useState<string | null>(null);
   const router = useRouter();
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchMsg, setSearchMsg] = useState<string | null>(null);
 
   // Web'de yeni aday arar, listeye ekler ve Instagram'dan doğrular. Mail/DM göndermez.
+  // Aynı düğmeye basış: çoktan aza → azdan çoğa → varsayılan sıra.
+  function toggleSort(key: SortKey) {
+    setSort((cur) => (!cur || cur.key !== key ? { key, dir: "desc" } : cur.dir === "desc" ? { key, dir: "asc" } : null));
+  }
+
   async function searchCandidates() {
     setSearching(true);
     setSearchMsg(null);
@@ -46,8 +57,10 @@ export default function Influencers() {
   const q = query.trim().toLocaleLowerCase("tr-TR");
 
   const active = all.filter((i) => !excluded.has(i.id));
-  const shown = active.filter(
-    (i) => !q || `${i.name} ${i.handle} ${i.niche}`.toLocaleLowerCase("tr-TR").includes(q),
+  const shown = sortInfluencers(
+    active.filter((i) => !q || `${i.name} ${i.handle} ${i.niche}`.toLocaleLowerCase("tr-TR").includes(q)),
+    sort?.key ?? null,
+    sort?.dir ?? "desc",
   );
   const flaggedActive = active.filter((i) => warningsFor(i).length > 0);
   const removed = all.filter((i) => excluded.has(i.id));
@@ -140,6 +153,26 @@ export default function Influencers() {
               </button>
             </div>
           )}
+
+          <div className="sortbar rise" style={d(180)} role="group" aria-label="Sırala">
+            <span className="muted small">Sırala</span>
+            {SORTS.map((o) => {
+              const on = sort?.key === o.key;
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  aria-pressed={on}
+                  onClick={() => toggleSort(o.key)}
+                  title={on ? (sort.dir === "desc" ? "Çoktan aza. Tekrar bas: azdan çoğa" : "Azdan çoğa. Tekrar bas: sıralamayı kaldır") : `${o.label}: çoktan aza sırala`}
+                >
+                  {o.label}
+                  {on && <span aria-hidden="true">{sort.dir === "desc" ? " ↓" : " ↑"}</span>}
+                </button>
+              );
+            })}
+          </div>
 
           <ul className="rows">
             {shown.map((i, idx) => (
