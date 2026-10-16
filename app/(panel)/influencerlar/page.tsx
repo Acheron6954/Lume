@@ -71,7 +71,6 @@ export default function Influencers() {
     <div className="page">
       <header className="page-head rise" style={d(0)}>
         <div>
-          <p className="eyebrow">Ajanın bulduğu hesaplar</p>
           <h1 className="h1">Influencerlar</h1>
         </div>
         <div>

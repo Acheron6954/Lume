@@ -99,7 +99,7 @@ export default function Overview() {
           <div className="card-head">
             <div className="agent-title">
               <span className="orb" aria-hidden="true" />
-              <h2 className="h2">Ajan</h2>
+              <h2 className="h2">Acheron</h2>
             </div>
           </div>
           <ul className="feed">
