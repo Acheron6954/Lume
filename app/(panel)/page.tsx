@@ -1,10 +1,10 @@
 "use client";
-import { CountUp, Sparkline } from "@/components/charts";
+import { CountUp } from "@/components/charts";
 import { Icon, type IconName } from "@/components/icons";
 import { usePanel } from "@/components/panel-store";
 import { TransitionLink } from "@/components/transition-link";
+import { fmtDay } from "@/lib/influencer";
 import { approvedCount } from "@/lib/panel-state";
-import { SAMPLE_FEED, SAMPLE_TRENDS } from "@/lib/sample-data";
 import { d } from "@/lib/ui";
 
 export default function Overview() {
@@ -14,11 +14,11 @@ export default function Overview() {
   const flagged = active.filter((i) => warningsFor(i).length > 0).length;
 
   const ready = approvedCount(state);
-  const stats: { label: string; value: number; trend: number[]; hint: string; tone: string; icon: IconName }[] = [
-    { label: "Keşfedilen", value: all.length, trend: SAMPLE_TRENDS.found, hint: "ajanın bulduğu hesap", tone: "plum", icon: "radar" },
-    { label: "Uyarılı", value: flagged, trend: SAMPLE_TRENDS.flagged, hint: "eşiğin altında kalan", tone: "amber", icon: "warn" },
-    { label: "Çıkarılan", value: state.excluded.length, trend: SAMPLE_TRENDS.excluded, hint: "etkileşimden çıkarıldı", tone: "blue", icon: "userx" },
-    { label: "Onaylı mail", value: ready, trend: SAMPLE_TRENDS.approved, hint: `${state.selected.length} seçili hesap, ${state.manual.length} manuel mail`, tone: "plum", icon: "mailcheck" },
+  const stats: { label: string; value: number; hint: string; tone: string; icon: IconName }[] = [
+    { label: "Keşfedilen", value: all.length, hint: "ajanın bulduğu hesap", tone: "plum", icon: "radar" },
+    { label: "Uyarılı", value: flagged, hint: "eşiğin altında kalan", tone: "amber", icon: "warn" },
+    { label: "Çıkarılan", value: state.excluded.length, hint: "etkileşimden çıkarıldı", tone: "blue", icon: "userx" },
+    { label: "Onaylı mail", value: ready, hint: `${state.selected.length} seçili hesap, ${state.manual.length} manuel mail`, tone: "plum", icon: "mailcheck" },
   ];
   const funnel = [
     { label: "Bulundu", n: active.length },
@@ -28,6 +28,21 @@ export default function Overview() {
     { label: "Kabul etti", n: 0 },
   ];
   const top = Math.max(1, ...funnel.map((f) => f.n));
+
+  const scanned = all.map((i) => i.scannedAt).filter((x): x is string => !!x).sort();
+  const lastScan = scanned[scanned.length - 1];
+  const time = lastScan ? new Date(lastScan).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }) : "—";
+  const verified = all.filter((i) => i.verified).length;
+  const withMail = all.filter((i) => i.email).length;
+  const failed = all.length - verified;
+  const feed: { time: string; text: string }[] = lastScan
+    ? [
+        { time, text: `Son Instagram taraması: ${fmtDay(lastScan)}` },
+        { time, text: `${verified} hesap Instagram'dan doğrulandı (takipçi, beğeni, yorum)` },
+        { time, text: `${withMail} hesapta iletişim maili bulundu` },
+        ...(failed > 0 ? [{ time, text: `${failed} hesap doğrulanamadı (kişisel hesap olabilir)` }] : []),
+      ]
+    : [{ time, text: "Henüz tarama yapılmadı" }];
 
   return (
     <div className="page">
@@ -49,7 +64,6 @@ export default function Overview() {
               <CountUp value={s.value} />
             </p>
             <p className="stat-hint">{s.hint}</p>
-            <Sparkline values={s.trend} />
           </article>
         ))}
       </section>
@@ -89,8 +103,8 @@ export default function Overview() {
             </div>
           </div>
           <ul className="feed">
-            {SAMPLE_FEED.map((f) => (
-              <li key={f.time}>
+            {feed.map((f) => (
+              <li key={f.text}>
                 <time className="num">{f.time}</time>
                 <span>{f.text}</span>
               </li>

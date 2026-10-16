@@ -1,43 +1,43 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { approvedCount, draftBody, initialState, reduce, sanitize, type Action, type PanelState } from "../lib/panel-state.ts";
-import { SAMPLE_INFLUENCERS } from "../lib/sample-data.ts";
+import { FIXTURE as SAMPLE_INFLUENCERS } from "./fixtures.mts";
 
 const known = new Set(SAMPLE_INFLUENCERS.map((i) => i.id));
 const run = (s: PanelState, ...as: Action[]) => as.reduce((st, a) => reduce(st, a, known), s);
 
 test("seçim: bilinmeyen ve çıkarılmış hesaplar seçilemez", () => {
-  let s = run(initialState, { type: "exclude", ids: ["ornek-04"] });
-  s = run(s, { type: "select", ids: ["ornek-01", "ornek-04", "yok-id"] });
-  assert.deepEqual(s.selected, ["ornek-01"]);
-  s = run(s, { type: "toggleSelect", id: "ornek-04" });
-  assert.deepEqual(s.selected, ["ornek-01"]);
+  let s = run(initialState, { type: "exclude", ids: ["t-04"] });
+  s = run(s, { type: "select", ids: ["t-01", "t-04", "yok-id"] });
+  assert.deepEqual(s.selected, ["t-01"]);
+  s = run(s, { type: "toggleSelect", id: "t-04" });
+  assert.deepEqual(s.selected, ["t-01"]);
 });
 
 test("çıkarma: seçimden ve onaydan da düşer, geri alınabilir", () => {
-  let s = run(initialState, { type: "select", ids: ["ornek-01", "ornek-02"] }, { type: "toggleApprove", id: "ornek-01" });
-  assert.deepEqual(s.approved, ["ornek-01"]);
-  s = run(s, { type: "exclude", ids: ["ornek-01"] });
-  assert.deepEqual(s.selected, ["ornek-02"]);
+  let s = run(initialState, { type: "select", ids: ["t-01", "t-02"] }, { type: "toggleApprove", id: "t-01" });
+  assert.deepEqual(s.approved, ["t-01"]);
+  s = run(s, { type: "exclude", ids: ["t-01"] });
+  assert.deepEqual(s.selected, ["t-02"]);
   assert.deepEqual(s.approved, []);
-  s = run(s, { type: "restore", id: "ornek-01" });
+  s = run(s, { type: "restore", id: "t-01" });
   assert.deepEqual(s.excluded, []);
 });
 
 test("onay: yalnızca seçili hesap onaylanır; metin düzenlenirse onay kalkar", () => {
-  let s = run(initialState, { type: "toggleApprove", id: "ornek-01" });
+  let s = run(initialState, { type: "toggleApprove", id: "t-01" });
   assert.deepEqual(s.approved, []);
-  s = run(s, { type: "select", ids: ["ornek-01"] }, { type: "toggleApprove", id: "ornek-01" });
-  assert.deepEqual(s.approved, ["ornek-01"]);
-  s = run(s, { type: "edit", id: "ornek-01", text: "Merhaba!" });
+  s = run(s, { type: "select", ids: ["t-01"] }, { type: "toggleApprove", id: "t-01" });
+  assert.deepEqual(s.approved, ["t-01"]);
+  s = run(s, { type: "edit", id: "t-01", text: "Merhaba!" });
   assert.deepEqual(s.approved, []);
   assert.equal(draftBody(s, SAMPLE_INFLUENCERS[0]), "Merhaba!");
-  s = run(s, { type: "edit", id: "ornek-01", text: null });
+  s = run(s, { type: "edit", id: "t-01", text: null });
   assert.ok(draftBody(s, SAMPLE_INFLUENCERS[0]).startsWith("Merhaba Cilt Günlüğü"));
 });
 
 test("şablon veya ayar değişince tüm onaylar sıfırlanır, komisyon 0-100 aralığına çekilir", () => {
-  let s = run(initialState, { type: "select", ids: ["ornek-01"] }, { type: "toggleApprove", id: "ornek-01" });
+  let s = run(initialState, { type: "select", ids: ["t-01"] }, { type: "toggleApprove", id: "t-01" });
   s = run(s, { type: "mail", value: { contact: "merhaba@lume1.com.tr", commission: 400 } });
   assert.deepEqual(s.approved, []);
   assert.equal(s.mail.commission, 100);
@@ -45,9 +45,9 @@ test("şablon veya ayar değişince tüm onaylar sıfırlanır, komisyon 0-100 a
 });
 
 test("eşikler sınırlanır", () => {
-  const s = run(initialState, { type: "thresholds", value: { minFollowers: -5, minRatio: 9 } });
+  const s = run(initialState, { type: "thresholds", value: { minFollowers: -5, minEngagement: 9 } });
   assert.equal(s.thresholds.minFollowers, 0);
-  assert.equal(s.thresholds.minRatio, 0.6);
+  assert.equal(s.thresholds.minEngagement, 0.6);
   assert.equal(run(initialState, { type: "thresholds", value: { minFollowers: NaN } }).thresholds.minFollowers, 10000);
 });
 
@@ -56,22 +56,22 @@ test("localStorage'dan gelen bozuk veri güvenli şekilde temizlenir", () => {
   assert.deepEqual(sanitize("x", known), initialState);
   const s = sanitize(
     {
-      excluded: ["ornek-04", 5, "yok"],
-      selected: ["ornek-04", "ornek-01"],
-      approved: ["ornek-02", "ornek-01"],
-      edits: { "ornek-01": "x".repeat(9000), yok: "a", "ornek-02": 3 },
-      thresholds: { minFollowers: "çok", minRatio: -1 },
+      excluded: ["t-04", 5, "yok"],
+      selected: ["t-04", "t-01"],
+      approved: ["t-02", "t-01"],
+      edits: { "t-01": "x".repeat(9000), yok: "a", "t-02": 3 },
+      thresholds: { minFollowers: "çok", minEngagement: -1 },
       mail: { brand: 5, commission: "30", contact: "a@b.c" },
     },
     known,
   );
-  assert.deepEqual(s.excluded, ["ornek-04"]);
-  assert.deepEqual(s.selected, ["ornek-01"]);
-  assert.deepEqual(s.approved, ["ornek-01"]);
-  assert.equal(s.edits["ornek-01"].length, 5000);
-  assert.deepEqual(Object.keys(s.edits), ["ornek-01"]);
+  assert.deepEqual(s.excluded, ["t-04"]);
+  assert.deepEqual(s.selected, ["t-01"]);
+  assert.deepEqual(s.approved, ["t-01"]);
+  assert.equal(s.edits["t-01"].length, 5000);
+  assert.deepEqual(Object.keys(s.edits), ["t-01"]);
   assert.equal(s.thresholds.minFollowers, 10000);
-  assert.equal(s.thresholds.minRatio, 0);
+  assert.equal(s.thresholds.minEngagement, 0);
   assert.equal(s.mail.brand, "Lume");
   assert.equal(s.mail.commission, 30);
   assert.equal(s.mail.contact, "a@b.c");
@@ -118,22 +118,22 @@ test("tekrar iletişim: bilinmeyen/çıkarılmış/yinelenen eklenmez, çıkarı
   const at = "2026-10-16T10:00:00Z";
   let s = run(initialState,
     { type: "addRecontact", id: "yok", note: "", at },
-    { type: "addRecontact", id: "ornek-01", note: " yanıt vermedi ", at },
-    { type: "addRecontact", id: "ornek-01", note: "ikinci", at },
-    { type: "addRecontact", id: "ornek-02", note: "", at: "geçersiz-tarih" });
-  assert.deepEqual(s.recontact, [{ id: "ornek-01", note: "yanıt vermedi", at }]);
-  s = run(s, { type: "noteRecontact", id: "ornek-01", note: "yeni not" });
+    { type: "addRecontact", id: "t-01", note: " yanıt vermedi ", at },
+    { type: "addRecontact", id: "t-01", note: "ikinci", at },
+    { type: "addRecontact", id: "t-02", note: "", at: "geçersiz-tarih" });
+  assert.deepEqual(s.recontact, [{ id: "t-01", note: "yanıt vermedi", at }]);
+  s = run(s, { type: "noteRecontact", id: "t-01", note: "yeni not" });
   assert.equal(s.recontact[0].note, "yeni not");
-  s = run(s, { type: "exclude", ids: ["ornek-01"] });
+  s = run(s, { type: "exclude", ids: ["t-01"] });
   assert.deepEqual(s.recontact, []);
-  s = run(s, { type: "addRecontact", id: "ornek-01", note: "", at });
+  s = run(s, { type: "addRecontact", id: "t-01", note: "", at });
   assert.deepEqual(s.recontact, []); // çıkarılmış hesap eklenemez
-  s = run(initialState, { type: "addRecontact", id: "ornek-02", note: "", at }, { type: "removeRecontact", id: "ornek-02" });
+  s = run(initialState, { type: "addRecontact", id: "t-02", note: "", at }, { type: "removeRecontact", id: "t-02" });
   assert.deepEqual(s.recontact, []);
 });
 
 test("sanitize: eski kayıtta yeni alanlar yoksa boş gelir; bozuk elle mail ve tekrar iletişim temizlenir", () => {
-  const old = sanitize({ excluded: [], selected: ["ornek-01"], approved: [] }, known);
+  const old = sanitize({ excluded: [], selected: ["t-01"], approved: [] }, known);
   assert.deepEqual(old.manual, []);
   assert.deepEqual(old.recontact, []);
   const s = sanitize({
@@ -144,12 +144,12 @@ test("sanitize: eski kayıtta yeni alanlar yoksa boş gelir; bozuk elle mail ve 
       { id: 5, name: "x" }, "çöp", null,
     ],
     recontact: [
-      { id: "ornek-02", note: "n", at: "2026-10-16T10:00:00Z" },
-      { id: "ornek-02", note: "kopya", at: "2026-10-16T10:00:00Z" },
+      { id: "t-02", note: "n", at: "2026-10-16T10:00:00Z" },
+      { id: "t-02", note: "kopya", at: "2026-10-16T10:00:00Z" },
       { id: "yok", note: "", at: "2026-10-16T10:00:00Z" },
-      { id: "ornek-03", note: "", at: "bozuk" },
+      { id: "t-03", note: "", at: "bozuk" },
     ],
   }, known);
   assert.deepEqual(s.manual.map((m) => [m.id, m.approved]), [["m1", true], ["m2", false]]);
-  assert.deepEqual(s.recontact.map((r) => r.id), ["ornek-02"]);
+  assert.deepEqual(s.recontact.map((r) => r.id), ["t-02"]);
 });

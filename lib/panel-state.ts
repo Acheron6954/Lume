@@ -132,7 +132,7 @@ export function reduce(s: PanelState, a: Action, known: ReadonlySet<string>): Pa
         ...s,
         thresholds: {
           minFollowers: Math.round(clamp(num(t.minFollowers, DEFAULT_THRESHOLDS.minFollowers), 0, 1_000_000)),
-          minRatio: clamp(num(t.minRatio, DEFAULT_THRESHOLDS.minRatio), 0, 0.6),
+          minEngagement: clamp(num(t.minEngagement, DEFAULT_THRESHOLDS.minEngagement), 0, 0.6),
         },
       };
     }
@@ -251,7 +251,7 @@ export function sanitize(raw: unknown, known: ReadonlySet<string>): PanelState {
     edits,
     thresholds: {
       minFollowers: clamp(Math.round(num(t.minFollowers, DEFAULT_THRESHOLDS.minFollowers)), 0, 1_000_000),
-      minRatio: clamp(num(t.minRatio, DEFAULT_THRESHOLDS.minRatio), 0, 0.6),
+      minEngagement: clamp(num(t.minEngagement, DEFAULT_THRESHOLDS.minEngagement), 0, 0.6),
     },
     mail: {
       brand: str(m.brand, DEFAULT_MAIL.brand, 60),

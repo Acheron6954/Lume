@@ -5,6 +5,7 @@ import { logout } from "@/app/giris/actions";
 import { Icon, type IconName } from "./icons";
 import { PanelProvider, usePanel } from "./panel-store";
 import { NavTransitionProvider, TransitionLink, useNavPhase } from "./transition-link";
+import type { Influencer } from "@/lib/influencer";
 import { approvedCount } from "@/lib/panel-state";
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
@@ -15,7 +16,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
 
 function Shell({ user, children }: { user: string; children: ReactNode }) {
   const pathname = usePathname() ?? "/";
-  const { state } = usePanel();
+  const { state, loadError } = usePanel();
   const phase = useNavPhase();
   const badge: Record<string, number> = { "/influencerlar": state.selected.length, "/mailler": approvedCount(state) };
 
@@ -57,6 +58,11 @@ function Shell({ user, children }: { user: string; children: ReactNode }) {
       </aside>
 
       <main className="main" data-phase={phase}>
+        {loadError && (
+          <div className="banner" role="alert">
+            <p>{loadError}</p>
+          </div>
+        )}
         {children}
       </main>
       </div>
@@ -64,9 +70,19 @@ function Shell({ user, children }: { user: string; children: ReactNode }) {
   );
 }
 
-export function PanelShell({ user, children }: { user: string; children: ReactNode }) {
+export function PanelShell({
+  user,
+  influencers,
+  loadError,
+  children,
+}: {
+  user: string;
+  influencers: Influencer[];
+  loadError: string | null;
+  children: ReactNode;
+}) {
   return (
-    <PanelProvider>
+    <PanelProvider influencers={influencers} loadError={loadError}>
       <NavTransitionProvider>
         <Shell user={user}>{children}</Shell>
       </NavTransitionProvider>

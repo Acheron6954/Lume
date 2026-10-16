@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
-import { fmtCount } from "@/lib/influencer";
+import { fmtCount, fmtRate } from "@/lib/influencer";
 import { useIntroReady } from "./use-intro-ready";
 
 /** Sayıyı sıfırdan hedefe sayarak getirir. Site görünür olunca başlar. */
@@ -30,35 +30,14 @@ export function CountUp({ value, ms = 1100 }: { value: number; ms?: number }) {
   return <span className="num">{shown}</span>;
 }
 
-export function Sparkline({ values, w = 128, h = 40 }: { values: number[]; w?: number; h?: number }) {
-  const id = useId().replace(/:/g, "");
-  const max = Math.max(...values, 1);
-  const pts = values.map((v, i) => [2 + (i / Math.max(1, values.length - 1)) * (w - 4), h - 5 - (v / max) * (h - 12)]);
-  const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
-  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)} ${h} L${pts[0][0].toFixed(1)} ${h} Z`;
-  const last = pts[pts.length - 1];
-  return (
-    <svg className="spark" viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden="true">
-      <defs>
-        <linearGradient id={`sg${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="currentColor" stopOpacity="0.38" />
-          <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#sg${id})`} className="spark-area" />
-      <path d={line} pathLength={1} className="spark-line" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={last[0]} cy={last[1]} r="3" fill="currentColor" className="spark-dot" />
-    </svg>
-  );
-}
-
-/** Satır içi küçük şema: üstte takipçi, altta ortalama görüntülenme (aynı ölçek). */
-export function DualBar({ followers, avgViews, max }: { followers: number; avgViews: number; max: number }) {
+/** Satır içi küçük şema: üstte takipçi, altta etkileşim oranı (%15 = tam genişlik). */
+export function DualBar({ followers, engagement, max }: { followers: number; engagement: number | null; max: number }) {
   const w = (v: number) => `${Math.max(4, Math.sqrt(v / max) * 100)}%`;
+  const e = engagement === null ? "0%" : `${Math.max(4, Math.min(100, (engagement / 0.15) * 100))}%`;
   return (
     <div className="dual" aria-hidden="true">
       <span className="dual-f" style={{ width: w(followers) }} />
-      <span className="dual-v" style={{ width: w(avgViews) }} />
+      <span className="dual-v" style={{ width: e }} />
     </div>
   );
 }
@@ -66,21 +45,21 @@ export function DualBar({ followers, avgViews, max }: { followers: number; avgVi
 export type ScatterPoint = { id: string; name: string; x: number; y: number; flagged: boolean; selected: boolean };
 
 const X0 = 5000;
-const X1 = 200000;
-const Y0 = 1000;
-const Y1 = 100000;
+const X1 = 1_000_000;
+const Y0 = 0.003; // %0,3
+const Y1 = 0.2; // %20
 
-/** Takipçi (yatay) ve ortalama görüntülenme (dikey), ikisi de logaritmik. Eşik bölgesi taranır. */
+/** Takipçi (yatay) ve etkileşim oranı (dikey), ikisi de logaritmik. Eşik bölgesi taranır. */
 export function Scatter({
   points,
   minFollowers,
-  minRatio,
+  minEngagement,
   hoverId,
   onHover,
 }: {
   points: ScatterPoint[];
   minFollowers: number;
-  minRatio: number;
+  minEngagement: number;
   hoverId: string | null;
   onHover: (id: string | null) => void;
 }) {
@@ -97,18 +76,15 @@ export function Scatter({
   const ly = (v: number) => (Math.log(v) - Math.log(Y0)) / (Math.log(Y1) - Math.log(Y0));
   const sx = (v: number) => L + lx(v) * iw;
   const sy = (v: number) => T + ih - ly(v) * ih;
-  const xTicks = [5000, 10000, 25000, 50000, 100000, 200000];
-  const yTicks = [1000, 3000, 10000, 30000, 100000];
+  const xTicks = [5000, 10000, 25000, 100000, 300000, 1_000_000];
+  const yTicks = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2];
   const minX = Math.min(X1, Math.max(X0, minFollowers));
-  const ratioOn = minRatio > 0;
-  const rx0 = sx(X0);
-  const rx1 = sx(X1);
-  const ry0 = sy(minRatio * X0);
-  const ry1 = sy(minRatio * X1);
+  const engOn = minEngagement > 0;
+  const minY = Math.min(Y1, Math.max(Y0, minEngagement));
   const hover = points.find((p) => p.id === hoverId);
 
   return (
-    <svg className="scatter" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Takipçi sayısına karşı ortalama görüntülenme grafiği">
+    <svg className="scatter" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Takipçi sayısına karşı etkileşim oranı grafiği">
       <defs>
         <clipPath id={`clip${uid}`}>
           <rect x={L} y={T} width={iw} height={ih} />
@@ -117,7 +93,7 @@ export function Scatter({
       {yTicks.map((v) => (
         <g key={`y${v}`}>
           <line x1={L} x2={W - R} y1={sy(v)} y2={sy(v)} className="grid" />
-          <text x={L - 6} y={sy(v) + 3} textAnchor="end" className="tick">{fmtCount(v)}</text>
+          <text x={L - 6} y={sy(v) + 3} textAnchor="end" className="tick">{fmtRate(v)}</text>
         </g>
       ))}
       {xTicks.map((v) => (
@@ -131,9 +107,9 @@ export function Scatter({
 
       <g clipPath={`url(#clip${uid})`}>
         <rect x={L} y={T} width={Math.max(0, sx(minX) - L)} height={ih} className="zone" />
-        {ratioOn && <polygon points={`${rx0},${T + ih} ${rx1},${T + ih} ${rx1},${ry1} ${rx0},${ry0}`} className="zone" />}
+        {engOn && <rect x={L} y={sy(minY)} width={iw} height={Math.max(0, T + ih - sy(minY))} className="zone" />}
         <line x1={sx(minX)} x2={sx(minX)} y1={T} y2={T + ih} className="limit" />
-        {ratioOn && <line x1={rx0} y1={ry0} x2={rx1} y2={ry1} className="limit" />}
+        {engOn && <line x1={L} x2={L + iw} y1={sy(minY)} y2={sy(minY)} className="limit" />}
       </g>
 
       {points.map((p) => {

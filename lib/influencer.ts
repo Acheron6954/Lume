@@ -9,34 +9,77 @@ export type Influencer = {
   platform: Platform;
   niche: string;
   followers: number;
-  avgViews: number;
+  avgLikes: number; // son gönderilerin ortalaması
+  avgComments: number;
+  engagement: number | null; // (ort. beğeni + ort. yorum) ÷ takipçi, 0..1; yeterli veri yoksa null
+  verified: boolean; // Instagram'dan doğrulandı mı (takipçi/etkileşim gerçek veri mi)
   email?: string;
   foundAt: string; // ISO
-  example?: boolean;
+  scannedAt?: string; // ISO, son Instagram taraması
 };
 
 export type Thresholds = {
   minFollowers: number; // bunun altı uyarılır
-  minRatio: number; // ort. görüntülenme ÷ takipçi, 0..1
+  minEngagement: number; // etkileşim oranı alt sınırı, 0..1
 };
 
-export type Warning = "low-followers" | "low-ratio";
+export type Warning = "low-followers" | "low-engagement" | "unverified";
 
 export const WARNING_LABEL: Record<Warning, string> = {
   "low-followers": "Düşük takipçi",
-  "low-ratio": "Düşük izlenme oranı",
+  "low-engagement": "Düşük etkileşim",
+  unverified: "Instagram'dan doğrulanamadı",
 };
 
-export const DEFAULT_THRESHOLDS: Thresholds = { minFollowers: 10_000, minRatio: 0.1 };
+export const DEFAULT_THRESHOLDS: Thresholds = { minFollowers: 10_000, minEngagement: 0.01 };
 
-export const viewRatio = (i: Pick<Influencer, "followers" | "avgViews">): number =>
-  i.followers > 0 ? i.avgViews / i.followers : 0;
+/** Etkileşim oranı en az bu kadar gönderiden hesaplanmışsa güvenilir sayılır. */
+export const MIN_POSTS_FOR_ENGAGEMENT = 3;
 
 export function warningsOf(i: Influencer, t: Thresholds): Warning[] {
   const out: Warning[] = [];
+  if (!i.verified) out.push("unverified");
   if (i.followers < t.minFollowers) out.push("low-followers");
-  if (viewRatio(i) < t.minRatio) out.push("low-ratio");
+  if (i.verified && i.engagement !== null && t.minEngagement > 0 && i.engagement < t.minEngagement) out.push("low-engagement");
   return out;
+}
+
+/** Supabase satırı (influencers tablosu) → panelin kullandığı biçim. Bozuk/eksik alanlara dayanıklıdır. */
+export type InfluencerRow = {
+  id: string;
+  name: string | null;
+  niche: string | null;
+  instagram: string | null;
+  email: string | null;
+  followers: number | null;
+  engagement_rate: number | string | null; // yüzde olarak saklanır (1,76 = %1,76)
+  avg_likes: number | null;
+  avg_comments: number | null;
+  posts_analyzed: number | null;
+  scan_status: string | null;
+  last_scanned_at: string | null;
+  found_at: string | null;
+};
+
+export function rowToInfluencer(r: InfluencerRow): Influencer {
+  const verified = r.scan_status === "ok";
+  const rate = r.engagement_rate === null ? NaN : Number(r.engagement_rate);
+  const enough = verified && Number.isFinite(rate) && (r.posts_analyzed ?? 0) >= MIN_POSTS_FOR_ENGAGEMENT;
+  return {
+    id: r.id,
+    name: (r.name ?? "").trim() || r.instagram || "İsimsiz",
+    handle: r.instagram ?? "",
+    platform: "instagram",
+    niche: (r.niche ?? "").trim(),
+    followers: Math.max(0, r.followers ?? 0),
+    avgLikes: verified ? Math.max(0, r.avg_likes ?? 0) : 0,
+    avgComments: verified ? Math.max(0, r.avg_comments ?? 0) : 0,
+    engagement: enough ? rate / 100 : null,
+    verified,
+    email: r.email?.trim() || undefined,
+    foundAt: r.found_at ?? new Date(0).toISOString(),
+    scannedAt: r.last_scanned_at ?? undefined,
+  };
 }
 
 const trDecimal = (n: number, digits: number) =>
@@ -51,6 +94,9 @@ export function fmtCount(n: number): string {
 }
 
 export const fmtPct = (r: number): string => `%${Math.round(r * 100)}`;
+
+/** Etkileşim oranı: 0.0176 → "%1,8", 0.13 → "%13" */
+export const fmtRate = (r: number): string => `%${trDecimal(r * 100, 1)}`;
 
 export const fmtDay = (iso: string): string =>
   new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "short", timeZone: "Europe/Istanbul" });

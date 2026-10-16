@@ -7,11 +7,12 @@ import {
   fillTemplate,
   fmtCount,
   fmtPct,
+  fmtRate,
+  rowToInfluencer,
   needsContact,
-  viewRatio,
   warningsOf,
 } from "../lib/influencer.ts";
-import { SAMPLE_INFLUENCERS } from "../lib/sample-data.ts";
+import { FIXTURE as SAMPLE_INFLUENCERS } from "./fixtures.mts";
 
 test("sayı biçimi Türkçe: 8,2 B / 126 B / 1,3 Mn / 950", () => {
   assert.equal(fmtCount(8200), "8,2 B");
@@ -20,24 +21,45 @@ test("sayı biçimi Türkçe: 8,2 B / 126 B / 1,3 Mn / 950", () => {
   assert.equal(fmtCount(1_250_000), "1,3 Mn");
   assert.equal(fmtCount(950), "950");
   assert.equal(fmtPct(0.444), "%44");
+  assert.equal(fmtRate(0.0176), "%1,8");
+  assert.equal(fmtRate(0.13), "%13");
 });
 
-test("uyarılar: 10 B altı takipçi ve %10 altı izlenme oranı", () => {
+test("uyarılar: 10 B altı takipçi, %1 altı etkileşim, doğrulanamayan hesap", () => {
   const w = (id: string) => warningsOf(SAMPLE_INFLUENCERS.find((i) => i.id === id)!, DEFAULT_THRESHOLDS);
-  assert.deepEqual(w("ornek-01"), []);
-  assert.deepEqual(w("ornek-04"), ["low-followers"]); // 9,4 B, oran %33
-  assert.deepEqual(w("ornek-05"), ["low-ratio"]); // 71 B, oran %6
-  assert.deepEqual(w("ornek-07"), ["low-ratio"]); // 15,6 B, oran %8
-  assert.deepEqual(w("ornek-10"), ["low-followers"]); // 7,8 B, oran %63
-  const flagged = SAMPLE_INFLUENCERS.filter((i) => warningsOf(i, DEFAULT_THRESHOLDS).length > 0);
-  assert.equal(flagged.length, 4);
+  assert.deepEqual(w("t-01"), []);
+  assert.deepEqual(w("t-02"), []);
+  assert.deepEqual(w("t-03"), ["low-followers"]);
+  assert.deepEqual(w("t-04"), ["low-engagement"]);
+  assert.deepEqual(w("t-05"), ["unverified"]);
+  assert.deepEqual(w("t-06"), []); // oran hesaplanamadıysa uyarılmaz
+  assert.equal(SAMPLE_INFLUENCERS.filter((i) => warningsOf(i, DEFAULT_THRESHOLDS).length > 0).length, 3);
 });
 
-test("eşikte tam değer uyarılmaz, sıfır takipçi çökertmez", () => {
+test("eşikte tam değer uyarılmaz; etkileşim kontrolü kapatılabilir", () => {
   const base = SAMPLE_INFLUENCERS[0];
-  assert.deepEqual(warningsOf({ ...base, followers: 10000, avgViews: 1000 }, DEFAULT_THRESHOLDS), []);
-  assert.equal(viewRatio({ followers: 0, avgViews: 50 }), 0);
-  assert.deepEqual(warningsOf({ ...base, followers: 0, avgViews: 0 }, DEFAULT_THRESHOLDS), ["low-followers", "low-ratio"]);
+  assert.deepEqual(warningsOf({ ...base, followers: 10000, engagement: 0.01 }, DEFAULT_THRESHOLDS), []);
+  assert.deepEqual(warningsOf({ ...base, followers: 0, engagement: 0 }, DEFAULT_THRESHOLDS), ["low-followers", "low-engagement"]);
+  assert.deepEqual(warningsOf({ ...base, engagement: 0.0001 }, { ...DEFAULT_THRESHOLDS, minEngagement: 0 }), []);
+});
+
+test("tablo satırı → influencer: az gönderide oran yok, doğrulanamayan hesapta veri yok", () => {
+  const row = {
+    id: "u1", name: null, niche: null, instagram: "ornek.hesap", email: " a@b.co ", followers: 20_000,
+    engagement_rate: "2.5", avg_likes: 480, avg_comments: 20, posts_analyzed: 12, scan_status: "ok",
+    last_scanned_at: "2026-10-16T14:00:00Z", found_at: "2026-10-16T10:00:00Z",
+  };
+  const i = rowToInfluencer(row);
+  assert.equal(i.name, "ornek.hesap"); // ad yoksa kullanıcı adı
+  assert.equal(i.handle, "ornek.hesap");
+  assert.equal(i.engagement, 0.025);
+  assert.equal(i.email, "a@b.co");
+  assert.equal(i.verified, true);
+  assert.equal(rowToInfluencer({ ...row, posts_analyzed: 2 }).engagement, null);
+  const bad = rowToInfluencer({ ...row, scan_status: "not_business" });
+  assert.deepEqual([bad.verified, bad.engagement, bad.avgLikes], [false, null, 0]);
+  const empty = rowToInfluencer({ ...row, followers: null, engagement_rate: null, found_at: null, email: null });
+  assert.deepEqual([empty.followers, empty.engagement, empty.email], [0, null, undefined]);
 });
 
 test("şablon: tüm alanlar dolar, boş iletişim işaretlenir", () => {
@@ -55,12 +77,6 @@ test("şablon: tüm alanlar dolar, boş iletişim işaretlenir", () => {
 test("şablon: $ gibi özel karakterler bozulmaz, bilinmeyen alan olduğu gibi kalır", () => {
   const i = { ...SAMPLE_INFLUENCERS[0], name: "A$&B" };
   assert.ok(fillTemplate("Selam {isim} {bilinmeyen}", i, DEFAULT_MAIL).includes("Selam A$&B {bilinmeyen}"));
-});
-
-test("örnek veri: tüm hesaplar ÖRNEK işaretli, id'ler benzersiz", () => {
-  assert.ok(SAMPLE_INFLUENCERS.every((i) => i.example && i.handle.startsWith("ornek.")));
-  assert.equal(new Set(SAMPLE_INFLUENCERS.map((i) => i.id)).size, SAMPLE_INFLUENCERS.length);
-  assert.ok(SAMPLE_INFLUENCERS.every((i) => !i.email || i.email.endsWith("@example.com")));
 });
 
 test("e-posta denetimi", async () => {

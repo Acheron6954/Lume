@@ -4,11 +4,11 @@ import { DualBar, Scatter, type ScatterPoint } from "@/components/charts";
 import { Icon } from "@/components/icons";
 import { usePanel } from "@/components/panel-store";
 import { TransitionLink } from "@/components/transition-link";
-import { WARNING_LABEL, fmtCount, fmtDay, fmtPct, profileUrl, viewRatio, type Influencer } from "@/lib/influencer";
+import { WARNING_LABEL, fmtCount, fmtDay, fmtRate, profileUrl, type Influencer } from "@/lib/influencer";
 import { d } from "@/lib/ui";
 
 const FOLLOWER_STEPS = [5000, 10000, 15000, 20000, 30000, 50000];
-const RATIO_STEPS = [0, 0.05, 0.1, 0.15, 0.2, 0.3];
+const RATIO_STEPS = [0, 0.005, 0.01, 0.015, 0.02, 0.03];
 
 export default function Influencers() {
   const { all, state, dispatch, hydrated, warningsFor } = usePanel();
@@ -27,11 +27,13 @@ export default function Influencers() {
   const removed = all.filter((i) => excluded.has(i.id));
   const maxFollowers = Math.max(1, ...all.map((i) => i.followers));
 
-  const points: ScatterPoint[] = active.map((i) => ({
+  const points: ScatterPoint[] = active
+    .filter((i) => i.engagement !== null)
+    .map((i) => ({
     id: i.id,
     name: i.name,
     x: i.followers,
-    y: i.avgViews,
+    y: i.engagement ?? 0,
     flagged: warningsFor(i).length > 0,
     selected: selected.has(i.id),
   }));
@@ -64,15 +66,15 @@ export default function Influencers() {
           </select>
         </label>
         <label className="ctl">
-          <span>İzlenme oranı alt sınırı</span>
+          <span>Etkileşim oranı alt sınırı</span>
           <select
             className="input"
-            value={t.minRatio}
-            onChange={(e) => dispatch({ type: "thresholds", value: { minRatio: Number(e.target.value) } })}
+            value={t.minEngagement}
+            onChange={(e) => dispatch({ type: "thresholds", value: { minEngagement: Number(e.target.value) } })}
           >
-            {(RATIO_STEPS.includes(t.minRatio) ? RATIO_STEPS : [...RATIO_STEPS, t.minRatio].sort((a, b) => a - b)).map((v) => (
+            {(RATIO_STEPS.includes(t.minEngagement) ? RATIO_STEPS : [...RATIO_STEPS, t.minEngagement].sort((a, b) => a - b)).map((v) => (
               <option key={v} value={v}>
-                {v === 0 ? "Kontrol etme" : `${fmtPct(v)} altı uyar`}
+                {v === 0 ? "Kontrol etme" : `${fmtRate(v)} altı uyar`}
               </option>
             ))}
           </select>
@@ -82,7 +84,7 @@ export default function Influencers() {
           <input className="input" type="search" placeholder="İsim, hesap veya alan" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
         <div className="ctl-hint">
-          <b>İzlenme oranı</b> = ortalama görüntülenme ÷ takipçi. Düşükse takipçilerin çoğu içeriği görmüyor demektir.
+          <b>Etkileşim oranı</b> = (ort. beğeni + ort. yorum) ÷ takipçi, son 12 gönderiden. Düşükse takipçilerin ilgisi zayıf ya da takipçi satın alınmış olabilir.
         </div>
       </section>
 
@@ -119,7 +121,7 @@ export default function Influencers() {
             ))}
           </ul>
           {shown.length === 0 && (
-            <p className="empty">{active.length === 0 ? "Listede aktif hesap kalmadı." : "Aramanla eşleşen hesap yok."}</p>
+            <p className="empty">{all.length === 0 ? "Henüz aday yok. Ajan hesap bulunca burada görünür." : active.length === 0 ? "Listede aktif hesap kalmadı." : "Aramanla eşleşen hesap yok."}</p>
           )}
 
           {removed.length > 0 && (
@@ -143,9 +145,9 @@ export default function Influencers() {
 
         <aside className="side-col">
           <div className="card sticky rise" style={d(220)}>
-            <h2 className="h2">Takipçi ve görüntülenme</h2>
+            <h2 className="h2">Takipçi ve etkileşim</h2>
             <p className="muted small">Her nokta bir hesap. Taranan bölgede kalanlar uyarılıdır.</p>
-            <Scatter points={points} minFollowers={t.minFollowers} minRatio={t.minRatio} hoverId={hover} onHover={setHover} />
+            <Scatter points={points} minFollowers={t.minFollowers} minEngagement={t.minEngagement} hoverId={hover} onHover={setHover} />
             <ul className="legend">
               <li><i className="dot dot-ok" /> Uygun</li>
               <li><i className="dot dot-flag" /> Uyarılı</li>
@@ -212,7 +214,6 @@ function Row({
   onHover: (id: string | null) => void;
 }) {
   const { dispatch } = usePanel();
-  const ratio = viewRatio(inf);
   const flagged = warnings.length > 0;
   return (
     <li
@@ -239,7 +240,7 @@ function Row({
             <Icon name={inf.platform === "instagram" ? "ig" : "tt"} size={14} /> @{inf.handle}
           </a>
           <span className="dotsep">·</span>
-          <span>{inf.niche}</span>
+          <span>{inf.niche || "alan yok"}</span>
           <span className="dotsep">·</span>
           <span>{fmtDay(inf.foundAt)}</span>
         </p>
@@ -260,14 +261,16 @@ function Row({
           <span className="metric-l">takipçi</span>
         </div>
         <div className="metric">
-          <span className="metric-n num">{fmtCount(inf.avgViews)}</span>
-          <span className="metric-l">ort. izlenme</span>
+          <span className="metric-n num">{inf.verified ? fmtCount(inf.avgLikes) : "—"}</span>
+          <span className="metric-l">ort. beğeni</span>
         </div>
         <div className="metric">
-          <span className={`metric-n num${flagged && warnings.includes("low-ratio") ? " bad" : ""}`}>{fmtPct(ratio)}</span>
-          <span className="metric-l">oran</span>
+          <span className={`metric-n num${warnings.includes("low-engagement") ? " bad" : ""}`}>
+            {inf.engagement === null ? "—" : fmtRate(inf.engagement)}
+          </span>
+          <span className="metric-l">etkileşim</span>
         </div>
-        <DualBar followers={inf.followers} avgViews={inf.avgViews} max={max} />
+        <DualBar followers={inf.followers} engagement={inf.engagement} max={max} />
       </div>
 
       <button type="button" className="btn btn-ghost btn-sm row-remove" onClick={() => dispatch({ type: "exclude", ids: [inf.id] })} title="Etkileşimden çıkar" aria-label={`${inf.name} hesabını etkileşimden çıkar`}>
