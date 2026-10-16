@@ -1,0 +1,108 @@
+/* Karadelik açılış katmanı. Üç katman: site (altta), maskeli kapak, canvas. */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  transition: opacity 0.6s ease;
+  --hx: 50%;
+  --hy: 47%;
+  --hr: 0px;
+  --ti: 0;
+}
+.intro[data-leaving="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-intro="skip"] .intro {
+  display: none;
+}
+
+.intro-cover {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(70% 55% at 50% 45%, rgb(74 26 85 / 0.55), transparent 70%),
+    radial-gradient(120% 90% at 50% 40%, #11113a 0%, #070920 55%, #03040f 100%);
+  -webkit-mask-image: radial-gradient(
+    circle at var(--hx) var(--hy),
+    transparent var(--hr),
+    #000 calc(var(--hr) + 110px)
+  );
+  mask-image: radial-gradient(
+    circle at var(--hx) var(--hy),
+    transparent var(--hr),
+    #000 calc(var(--hr) + 110px)
+  );
+}
+
+.intro-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.intro-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(47% + min(100vw, 100vh) * 0.27);
+  text-align: center;
+  font-family: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  font-weight: 600;
+  font-size: clamp(30px, 5.2vw, 64px);
+  color: #f5ede0;
+  text-shadow: 0 0 28px rgb(222 118 208 / 0.55);
+  opacity: var(--ti);
+  letter-spacing: calc(0.62em - 0.3em * var(--ti));
+  padding-left: 0.4em;
+  pointer-events: none;
+}
+.intro-sub {
+  display: block;
+  margin-top: 0.5em;
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-weight: 500;
+  font-size: clamp(10px, 1.1vw, 13px);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgb(245 237 224 / 0.62);
+}
+
+.intro-skip {
+  position: absolute;
+  right: max(18px, env(safe-area-inset-right, 0px));
+  bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  background: transparent;
+  border: 1px solid rgb(245 237 224 / 0.28);
+  color: rgb(245 237 224 / 0.78);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font: 500 12px/1 var(--font-body, system-ui, sans-serif);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  animation: introSkipIn 0.6s ease 1.2s forwards;
+}
+.intro-skip:hover {
+  background: rgb(245 237 224 / 0.1);
+  color: #f5ede0;
+}
+.intro-skip:focus-visible {
+  outline: 2px solid #de76d0;
+  outline-offset: 3px;
+}
+@keyframes introSkipIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro {
+    display: none;
+  }
+}

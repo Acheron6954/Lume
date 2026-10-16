@@ -1,30 +1,48 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Intro } from "@/components/intro";
 import "./globals.css";
-import "./backgrounds.css";
+import "./intro.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const display = Cormorant_Garamond({
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
 });
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const body = Manrope({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-body",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Lume",
-  description: "Lume", 
+  title: { default: "Lume Kreatör Paneli", template: "%s · Lume" },
+  description: "Lume kreatör iş birliği paneli",
+  robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export const viewport: Viewport = {
+  themeColor: "#0a0f2e",
+  colorScheme: "dark",
+};
+
+// Aynı oturumda animasyon daha önce oynadıysa, ilk boyamadan önce katmanı gizler.
+const BOOT = `(function(){try{var d=document.documentElement;if(sessionStorage.getItem("lume-intro")==="1"||matchMedia("(prefers-reduced-motion: reduce)").matches){d.setAttribute("data-intro","skip");d.classList.add("intro-done")}}catch(e){}})()`;
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="tr" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: BOOT }} />
+      </head>
+      <body>
+        {children}
+        <Intro />
+        <noscript>
+          <style>{`.intro{display:none}.rise,.page-enter{animation:none!important;opacity:1!important;transform:none!important}`}</style>
+        </noscript>
+      </body>
     </html>
   );
 }
