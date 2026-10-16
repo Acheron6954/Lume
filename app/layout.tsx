@@ -17,8 +17,8 @@ const body = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Lume Kreatör Paneli", template: "%s · Lume" },
-  description: "Lume kreatör iş birliği paneli",
+  title: { default: "Lume", template: "%s · Lume" },
+  description: "Lume",
   robots: { index: false, follow: false },
 };
 
