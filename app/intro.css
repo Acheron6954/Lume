@@ -60,6 +60,10 @@ html[data-intro="skip"] .intro {
   padding-left: 0.4em;
   pointer-events: none;
 }
+/* Apostrof dar bir glif; harf aralığı yüzünden kopuk durmasın diye iki yanını kapat. */
+.intro-ap {
+  margin: 0 -0.2em 0 -0.12em;
+}
 .intro-sub {
   display: block;
   margin-top: 0.5em;

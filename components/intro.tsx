@@ -73,7 +73,7 @@ export function Intro() {
       <div className="intro-cover" />
       <canvas ref={canvasRef} className="intro-canvas" />
       <div className="intro-title">
-        L&apos;UME
+        L<span className="intro-ap">&apos;</span>UME
         <span className="intro-sub">Kreatör Paneli</span>
       </div>
       <button type="button" className="intro-skip" onClick={() => skipRef.current()}>
