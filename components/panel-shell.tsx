@@ -16,7 +16,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
 
 function Shell({ user, children }: { user: string; children: ReactNode }) {
   const pathname = usePathname() ?? "/";
-  const { state, loadError } = usePanel();
+  const { state, loadError, readOnly } = usePanel();
   const phase = useNavPhase();
   const badge: Record<string, number> = { "/influencerlar": state.selected.length, "/mailler": approvedCount(state) };
 
@@ -48,6 +48,7 @@ function Shell({ user, children }: { user: string; children: ReactNode }) {
           <div className="who-me">
             <span className="avatar sm" aria-hidden="true">{user.slice(0, 1).toUpperCase()}</span>
             <span>{user}</span>
+            {readOnly && <span className="muted small" title="Bu hesap her şeyi görür ama hiçbir şeyi değiştiremez">salt okunur</span>}
           </div>
           <form action={logout}>
             <button type="submit" className="btn btn-ghost btn-sm">
@@ -74,15 +75,17 @@ export function PanelShell({
   user,
   influencers,
   loadError,
+  readOnly = false,
   children,
 }: {
   user: string;
   influencers: Influencer[];
   loadError: string | null;
+  readOnly?: boolean;
   children: ReactNode;
 }) {
   return (
-    <PanelProvider influencers={influencers} loadError={loadError}>
+    <PanelProvider influencers={influencers} loadError={loadError} readOnly={readOnly}>
       <NavTransitionProvider>
         <Shell user={user}>{children}</Shell>
       </NavTransitionProvider>

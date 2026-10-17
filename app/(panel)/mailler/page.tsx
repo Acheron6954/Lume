@@ -22,7 +22,7 @@ type Tab = "drafts" | "manual" | "recontact" | "template";
 const newId = () => `manuel-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 export default function Mails() {
-  const { all, state } = usePanel();
+  const { all, state, readOnly } = usePanel();
   const [tab, setTab] = useState<Tab>("drafts");
 
   const chosen = useMemo(() => all.filter((i) => state.selected.includes(i.id)), [all, state.selected]);
@@ -64,10 +64,13 @@ export default function Mails() {
       </div>
 
       <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} className="tab-panel">
-        {tab === "drafts" && <Drafts chosen={chosen} onManual={() => setTab("manual")} />}
-        {tab === "manual" && <ManualForm onAdded={() => setTab("drafts")} />}
-        {tab === "recontact" && <RecontactTab onDrafts={() => setTab("drafts")} />}
-        {tab === "template" && <TemplateCard />}
+        {/* Salt okunur hesapta içerikteki tüm form alanları ve düğmeler tek hamlede kapanır; sekmeler dışarıda kaldığı için gezinti açık. */}
+        <fieldset disabled={readOnly} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+          {tab === "drafts" && <Drafts chosen={chosen} onManual={() => setTab("manual")} />}
+          {tab === "manual" && <ManualForm onAdded={() => setTab("drafts")} />}
+          {tab === "recontact" && <RecontactTab onDrafts={() => setTab("drafts")} />}
+          {tab === "template" && <TemplateCard />}
+        </fieldset>
       </div>
 
       <div className="send-bar rise" style={d(300)}>

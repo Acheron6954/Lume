@@ -11,6 +11,8 @@ type Store = {
   all: Influencer[];
   loadError: string | null;
   hydrated: boolean;
+  /** Salt okunur hesap: durum değiştiren hiçbir eylem çalışmaz, tarayıcı depolamasına dokunulmaz. */
+  readOnly: boolean;
   warningsFor: (i: Influencer) => Warning[];
 };
 
@@ -19,39 +21,44 @@ const Ctx = createContext<Store | null>(null);
 export function PanelProvider({
   influencers,
   loadError = null,
+  readOnly = false,
   children,
 }: {
   influencers: Influencer[];
   loadError?: string | null;
+  readOnly?: boolean;
   children: ReactNode;
 }) {
   const known = useMemo<ReadonlySet<string>>(() => new Set(influencers.map((i) => i.id)), [influencers]);
-  const [state, dispatch] = useReducer((s: PanelState, a: Action) => reduce(s, a, known), initialState);
+  const [state, rawDispatch] = useReducer((s: PanelState, a: Action) => reduce(s, a, known), initialState);
   const [hydrated, setHydrated] = useState(false);
+  // Salt okunurda hiçbir eylem state'e ulaşmaz (arayüzdeki kapalı düğmelere ek, ikinci kilit).
+  const dispatch = useMemo<Dispatch<Action>>(() => (readOnly ? () => {} : rawDispatch), [readOnly]);
 
   useEffect(() => {
-    // Veri yüklenemediyse (known boş) kayıtlı seçimleri silmemek için hydrate etme.
-    if (loadError) {
+    // Salt okunur hesap yöneticinin seçimlerini okumaz ve üzerine yazmaz: temiz, varsayılan görünüm.
+    // Veri yüklenemediyse (known boş) kayıtlı seçimleri silmemek için de hydrate etme.
+    if (loadError || readOnly) {
       setHydrated(true);
       return;
     }
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) dispatch({ type: "hydrate", state: sanitize(JSON.parse(raw), known) });
+      if (raw) rawDispatch({ type: "hydrate", state: sanitize(JSON.parse(raw), known) });
     } catch {}
     setHydrated(true);
-  }, [known, loadError]);
+  }, [known, loadError, readOnly]);
 
   useEffect(() => {
-    if (!hydrated || loadError) return;
+    if (!hydrated || loadError || readOnly) return;
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
     } catch {}
-  }, [state, hydrated, loadError]);
+  }, [state, hydrated, loadError, readOnly]);
 
   const value = useMemo<Store>(
-    () => ({ state, dispatch, all: influencers, loadError, hydrated, warningsFor: (i) => warningsOf(i, state.thresholds) }),
-    [state, influencers, loadError, hydrated],
+    () => ({ state, dispatch, all: influencers, loadError, hydrated, readOnly, warningsFor: (i) => warningsOf(i, state.thresholds) }),
+    [state, dispatch, influencers, loadError, hydrated, readOnly],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

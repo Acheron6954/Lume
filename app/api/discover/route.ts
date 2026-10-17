@@ -22,6 +22,7 @@ export async function GET(request: Request) {
   if (!session && !cronAuthorized(request.headers.get("authorization"))) {
     return Response.json({ error: "Giriş gerekli" }, { status: 401 });
   }
+  if (session && session.role !== "admin") return Response.json({ error: "Bu hesap salt okunur." }, { status: 403 });
 
   const braveKey = process.env.BRAVE_API_KEY;
   const db = adminClient();

@@ -7,7 +7,16 @@ export const SESSION_MAX_AGE = 60 * 60 * 12; // saniye: 12 saat
 
 const SCRYPT = { N: 16384, r: 8, p: 1 } as const;
 
-export type AuthConfig = { user: string; passHash: string; secret: string };
+/** admin: her şeyi yapar. viewer: her şeyi görür, hiçbir şeyi değiştiremez ve kimseyle iletişime geçemez. */
+export type Role = "admin" | "viewer";
+
+export type AuthConfig = {
+  user: string;
+  passHash: string;
+  secret: string;
+  /** İsteğe bağlı salt okunur ikinci kullanıcı (LUME_VIEWER_USER + LUME_VIEWER_PASS_HASH). */
+  viewer?: { user: string; passHash: string };
+};
 
 /** Ortam değişkenleri eksikse null döner; bu durumda giriş tamamen kapalı kalır. */
 export function readConfig(env: Record<string, string | undefined> = process.env): AuthConfig | null {
@@ -15,7 +24,11 @@ export function readConfig(env: Record<string, string | undefined> = process.env
   const passHash = env.LUME_PASS_HASH?.trim();
   const secret = env.SESSION_SECRET?.trim();
   if (!user || !passHash || !secret || secret.length < 32) return null;
-  return { user, passHash, secret };
+  const vUser = env.LUME_VIEWER_USER?.trim();
+  const vHash = env.LUME_VIEWER_PASS_HASH?.trim();
+  // Aynı ad iki role birden verilemez: admin adı her zaman admin'e gider.
+  const viewer = vUser && vHash && vUser.toLowerCase() !== user.toLowerCase() ? { user: vUser, passHash: vHash } : undefined;
+  return { user, passHash, secret, viewer };
 }
 
 /** Biçim: scrypt:<tuz hex>:<anahtar hex>. ($ kullanılmaz: .env dosyalarında değişken sanılır.) */
@@ -43,6 +56,18 @@ export function checkCredentials(username: string, password: string, cfg: AuthCo
   return userOk && passOk;
 }
 
+/** Hangi rolle girildiğini döner (hiçbiri uymazsa null). İki kullanıcı için de şifre kontrolü her zaman çalışır. */
+export function authenticate(username: string, password: string, cfg: AuthConfig): Role | null {
+  const adminOk = checkCredentials(username, password, cfg);
+  let viewerOk = false;
+  if (cfg.viewer) {
+    const nameOk = timingSafeEqual(digest(username.toLowerCase()), digest(cfg.viewer.user.toLowerCase()));
+    const passOk = verifyPassword(password, cfg.viewer.passHash);
+    viewerOk = nameOk && passOk;
+  }
+  return adminOk ? "admin" : viewerOk ? "viewer" : null;
+}
+
 /** Vercel Cron, CRON_SECRET tanımlıysa "Authorization: Bearer <gizli>" başlığıyla çağırır. */
 export function cronAuthorized(header: string | null | undefined, env: Record<string, string | undefined> = process.env): boolean {
   const secret = env.CRON_SECRET?.trim();
@@ -50,13 +75,13 @@ export function cronAuthorized(header: string | null | undefined, env: Record<st
   return timingSafeEqual(digest(header), digest(`Bearer ${secret}`));
 }
 
-export function signSession(user: string, secret: string, now = Date.now()): string {
-  const payload = Buffer.from(JSON.stringify({ u: user, exp: now + SESSION_MAX_AGE * 1000 })).toString("base64url");
+export function signSession(user: string, secret: string, now = Date.now(), role: Role = "admin"): string {
+  const payload = Buffer.from(JSON.stringify({ u: user, r: role, exp: now + SESSION_MAX_AGE * 1000 })).toString("base64url");
   const sig = createHmac("sha256", secret).update(payload).digest("base64url");
   return `${payload}.${sig}`;
 }
 
-export function readSession(token: string | undefined, secret: string, now = Date.now()): { user: string } | null {
+export function readSession(token: string | undefined, secret: string, now = Date.now()): { user: string; role: Role } | null {
   if (!token) return null;
   const dot = token.indexOf(".");
   if (dot < 1) return null;
@@ -67,7 +92,8 @@ export function readSession(token: string | undefined, secret: string, now = Dat
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (typeof data.u !== "string" || typeof data.exp !== "number" || data.exp < now) return null;
-    return { user: data.u };
+    // "r" yoksa token rol eklenmeden önce üretilmiştir; o dönemde tek kullanıcı vardı (admin).
+    return { user: data.u, role: data.r === "viewer" ? "viewer" : "admin" };
   } catch {
     return null;
   }

@@ -13,6 +13,7 @@ export async function GET(request: Request) {
   const store = await cookies();
   const session = cfg ? readSession(store.get(SESSION_COOKIE)?.value, cfg.secret) : null;
   if (!session) return Response.json({ error: "Giriş gerekli" }, { status: 401 });
+  if (session.role !== "admin") return Response.json({ error: "Bu hesap salt okunur." }, { status: 403 });
 
   const token = process.env.IG_TOKEN;
   const igUserId = process.env.IG_USER_ID;

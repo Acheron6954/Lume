@@ -13,6 +13,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Salt okunur hesap: sayfaları görür ama hiçbir API'yi (tarama, aday arama) çalıştıramaz.
+  if (session?.role === "viewer" && request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Bu hesap salt okunur." }, { status: 403 });
+  }
+
   if (!session && !onLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/giris";

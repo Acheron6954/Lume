@@ -12,7 +12,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   if (!session) redirect("/giris");
   const { influencers, error } = await loadInfluencers();
   return (
-    <PanelShell user={session.user} influencers={influencers} loadError={error}>
+    <PanelShell user={session.user} influencers={influencers} loadError={error} readOnly={session.role === "viewer"}>
       {children}
     </PanelShell>
   );

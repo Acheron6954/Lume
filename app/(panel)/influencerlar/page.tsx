@@ -17,7 +17,7 @@ const SORTS: { key: SortKey; label: string }[] = [
 ];
 
 export default function Influencers() {
-  const { all, state, dispatch, hydrated, warningsFor } = usePanel();
+  const { all, state, dispatch, hydrated, warningsFor, readOnly } = usePanel();
   const [query, setQuery] = useState("");
   const [hover, setHover] = useState<string | null>(null);
   const router = useRouter();
@@ -32,6 +32,7 @@ export default function Influencers() {
   }
 
   async function searchCandidates() {
+    if (readOnly) return;
     setSearching(true);
     setSearchMsg(null);
     try {
@@ -87,7 +88,13 @@ export default function Influencers() {
           <h1 className="h1">Influencerlar</h1>
         </div>
         <div>
-          <button type="button" className="btn btn-primary" onClick={searchCandidates} disabled={searching}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={searchCandidates}
+            disabled={searching || readOnly}
+            title={readOnly ? "Bu hesap salt okunur" : undefined}
+          >
             {searching ? "Aranıyor…" : "Aday ara"}
           </button>
           {searchMsg && (
@@ -104,6 +111,7 @@ export default function Influencers() {
           <select
             className="input"
             value={t.minFollowers}
+            disabled={readOnly}
             onChange={(e) => dispatch({ type: "thresholds", value: { minFollowers: Number(e.target.value) } })}
           >
             {(FOLLOWER_STEPS.includes(t.minFollowers) ? FOLLOWER_STEPS : [...FOLLOWER_STEPS, t.minFollowers].sort((a, b) => a - b)).map((v) => (
@@ -118,6 +126,7 @@ export default function Influencers() {
           <select
             className="input"
             value={t.minEngagement}
+            disabled={readOnly}
             onChange={(e) => dispatch({ type: "thresholds", value: { minEngagement: Number(e.target.value) } })}
           >
             {(RATIO_STEPS.includes(t.minEngagement) ? RATIO_STEPS : [...RATIO_STEPS, t.minEngagement].sort((a, b) => a - b)).map((v) => (
@@ -147,6 +156,7 @@ export default function Influencers() {
               <button
                 type="button"
                 className="btn btn-sm btn-warn"
+                disabled={readOnly}
                 onClick={() => dispatch({ type: "exclude", ids: flaggedActive.map((i) => i.id) })}
               >
                 Hepsini etkileşimden çıkar
@@ -201,7 +211,7 @@ export default function Influencers() {
                     <span>
                       {i.name} <span className="muted">@{i.handle}</span>
                     </span>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => dispatch({ type: "restore", id: i.id })}>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={readOnly} onClick={() => dispatch({ type: "restore", id: i.id })}>
                       <Icon name="undo" size={15} /> Geri al
                     </button>
                   </li>
@@ -239,7 +249,7 @@ export default function Influencers() {
         </aside>
       </div>
 
-      <div className="dock" data-show={hydrated && (state.selected.length > 0 || cleanShown.length > 0)}>
+      <div className="dock" data-show={!readOnly && hydrated && (state.selected.length > 0 || cleanShown.length > 0)}>
         <div className="dock-info">
           <b className="num">{state.selected.length}</b> hesap seçili
         </div>
@@ -247,12 +257,12 @@ export default function Influencers() {
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            disabled={cleanShown.length === 0}
+            disabled={readOnly || cleanShown.length === 0}
             onClick={() => dispatch({ type: "select", ids: cleanShown.map((i) => i.id) })}
           >
             Uygun olanları seç
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" disabled={state.selected.length === 0} onClick={() => dispatch({ type: "clearSelection" })}>
+          <button type="button" className="btn btn-ghost btn-sm" disabled={readOnly || state.selected.length === 0} onClick={() => dispatch({ type: "clearSelection" })}>
             Temizle
           </button>
           <TransitionLink href="/mailler" className="btn btn-primary btn-sm" aria-disabled={state.selected.length === 0} data-disabled={state.selected.length === 0}>
@@ -281,7 +291,7 @@ function Row({
   hovered: boolean;
   onHover: (id: string | null) => void;
 }) {
-  const { dispatch } = usePanel();
+  const { dispatch, readOnly } = usePanel();
   const flagged = warnings.length > 0;
   return (
     <li
@@ -291,7 +301,7 @@ function Row({
       onMouseLeave={() => onHover(null)}
     >
       <label className="check">
-        <input type="checkbox" checked={checked} onChange={() => dispatch({ type: "toggleSelect", id: inf.id })} aria-label={`${inf.name} seç`} />
+        <input type="checkbox" checked={checked} disabled={readOnly} onChange={() => dispatch({ type: "toggleSelect", id: inf.id })} aria-label={`${inf.name} seç`} />
         <span className="check-box" aria-hidden="true">
           <Icon name="check" size={14} />
         </span>
@@ -341,7 +351,7 @@ function Row({
         <DualBar followers={inf.followers} engagement={inf.engagement} max={max} />
       </div>
 
-      <button type="button" className="btn btn-ghost btn-sm row-remove" onClick={() => dispatch({ type: "exclude", ids: [inf.id] })} title="Etkileşimden çıkar" aria-label={`${inf.name} hesabını etkileşimden çıkar`}>
+      <button type="button" className="btn btn-ghost btn-sm row-remove" disabled={readOnly} onClick={() => dispatch({ type: "exclude", ids: [inf.id] })} title="Etkileşimden çıkar" aria-label={`${inf.name} hesabını etkileşimden çıkar`}>
         <Icon name="close" size={15} /> <span>Çıkar</span>
       </button>
     </li>

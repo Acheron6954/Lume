@@ -7,7 +7,7 @@ import {
   MAX_FAILS_PER_IP,
   SESSION_COOKIE,
   SESSION_MAX_AGE,
-  checkCredentials,
+  authenticate,
   lockedFor,
   readConfig,
   recordFail,
@@ -35,7 +35,8 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const username = String(formData.get("username") ?? "").trim().slice(0, 64);
   const password = String(formData.get("password") ?? "").slice(0, 128);
 
-  if (!checkCredentials(username, password, cfg)) {
+  const role = authenticate(username, password, cfg);
+  if (!role) {
     recordFail(`ip:${ip}`, MAX_FAILS_PER_IP);
     recordFail("global", MAX_FAILS_GLOBAL);
     await sleep(700);
@@ -44,7 +45,9 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   recordSuccess(`ip:${ip}`);
   const store = await cookies();
-  store.set(SESSION_COOKIE, signSession(cfg.user, cfg.secret), {
+  // Oturumdaki ad, girilen hesabın kendi adıdır (viewer ise viewer'ın adı).
+  const sessionUser = role === "viewer" && cfg.viewer ? cfg.viewer.user : cfg.user;
+  store.set(SESSION_COOKIE, signSession(sessionUser, cfg.secret, Date.now(), role), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
