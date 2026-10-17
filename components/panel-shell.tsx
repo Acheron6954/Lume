@@ -1,7 +1,8 @@
 "use client";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { startTransition, useEffect, type ReactNode } from "react";
 import { logout } from "@/app/giris/actions";
+import { needsLogin } from "@/lib/login-gate";
 import { Icon, type IconName } from "./icons";
 import { PanelProvider, usePanel } from "./panel-store";
 import { NavTransitionProvider, TransitionLink, useNavPhase } from "./transition-link";
@@ -18,6 +19,12 @@ function Shell({ user, children }: { user: string; children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const { state, loadError, readOnly } = usePanel();
   const phase = useNavPhase();
+
+  // Siteye her girişte şifre sorulur: yeni sekme ya da adres çubuğundan yeniden giriş, oturumu kapatır.
+  useEffect(() => {
+    if (needsLogin()) startTransition(() => void logout());
+  }, []);
+
   const badge: Record<string, number> = { "/influencerlar": state.selected.length, "/mailler": approvedCount(state) };
 
   return (

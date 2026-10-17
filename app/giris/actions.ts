@@ -6,7 +6,6 @@ import {
   MAX_FAILS_GLOBAL,
   MAX_FAILS_PER_IP,
   SESSION_COOKIE,
-  SESSION_MAX_AGE,
   authenticate,
   lockedFor,
   readConfig,
@@ -52,7 +51,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: SESSION_MAX_AGE,
+    // maxAge yok: oturum çerezi, tarayıcı tamamen kapanınca silinir (sunucu tarafı süre yine token içinde).
   });
   redirect("/");
 }

@@ -1,11 +1,12 @@
 "use client";
 import { useActionState } from "react";
+import { markLoggedIn } from "@/lib/login-gate";
 import { login, type LoginState } from "./actions";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
   return (
-    <form action={action} className="login-form">
+    <form action={action} onSubmit={markLoggedIn} className="login-form">
       <label className="field">
         <span>Kullanıcı adı</span>
         <input name="username" className="input" autoComplete="username" autoCapitalize="none" spellCheck={false} required />
