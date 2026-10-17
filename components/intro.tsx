@@ -2,9 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { startBlackHole } from "@/lib/blackhole";
 
-const FLAG = "lume-intro";
-
-/** Oturumda bir kez oynar. Atla düğmesi, Esc, ya da "hareketi azalt" ayarı animasyonu geçer. */
+/** Siteye her girişte (sayfa her yüklendiğinde) oynar. Atla düğmesi, Esc, ya da "hareketi azalt" ayarı animasyonu geçer. */
 export function Intro() {
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -15,18 +13,8 @@ export function Intro() {
     const root = rootRef.current;
     const canvas = canvasRef.current;
     const html = document.documentElement;
-    const remember = () => {
-      try {
-        sessionStorage.setItem(FLAG, "1");
-      } catch {}
-    };
-
-    let seen = false;
-    try {
-      seen = sessionStorage.getItem(FLAG) === "1";
-    } catch {}
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!root || !canvas || seen || reduced) {
+    if (!root || !canvas || reduced) {
       html.classList.add("intro-done");
       setGone(true);
       return;
@@ -41,7 +29,6 @@ export function Intro() {
       },
       onGo: () => html.classList.add("intro-done"),
       onDone: () => {
-        remember();
         html.classList.add("intro-done");
         setGone(true);
       },
@@ -52,7 +39,6 @@ export function Intro() {
       if (leaving) return;
       leaving = true;
       ctl.stop();
-      remember();
       html.classList.add("intro-done");
       root.dataset.leaving = "true";
       window.setTimeout(() => setGone(true), 650);

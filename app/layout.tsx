@@ -27,8 +27,9 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
-// Aynı oturumda animasyon daha önce oynadıysa, ilk boyamadan önce katmanı gizler.
-const BOOT = `(function(){try{var d=document.documentElement;if(sessionStorage.getItem("lume-intro")==="1"||matchMedia("(prefers-reduced-motion: reduce)").matches){d.setAttribute("data-intro","skip");d.classList.add("intro-done")}}catch(e){}})()`;
+// Animasyon siteye her girişte (sayfa her yüklendiğinde) oynar. Yalnızca "hareketi azalt" açıksa,
+// ilk boyamadan önce katmanı gizler.
+const BOOT = `(function(){try{var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches){d.setAttribute("data-intro","skip");d.classList.add("intro-done")}}catch(e){}})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
