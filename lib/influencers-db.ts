@@ -3,7 +3,7 @@ import { rowToInfluencer, type Influencer, type InfluencerRow } from "./influenc
 import { adminClient } from "./supabase-admin";
 
 const COLUMNS =
-  "id, name, niche, instagram, email, followers, engagement_rate, avg_likes, avg_comments, posts_analyzed, scan_status, last_scanned_at, found_at";
+  "id, name, niche, instagram, email, tiktok, followers, engagement_rate, avg_likes, avg_comments, posts_analyzed, scan_status, last_scanned_at, found_at";
 
 export async function loadInfluencers(): Promise<{ influencers: Influencer[]; error: string | null }> {
   const db = adminClient();

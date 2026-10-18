@@ -5,7 +5,7 @@ import { DualBar, Scatter, type ScatterPoint } from "@/components/charts";
 import { Icon } from "@/components/icons";
 import { usePanel } from "@/components/panel-store";
 import { TransitionLink } from "@/components/transition-link";
-import { WARNING_LABEL, fmtCount, fmtDay, fmtRate, profileUrl, sortInfluencers, type Influencer, type SortDir, type SortKey } from "@/lib/influencer";
+import { WARNING_LABEL, fmtCount, fmtDay, fmtRate, profileUrl, sortInfluencers, tiktokUrl, type Influencer, type SortDir, type SortKey } from "@/lib/influencer";
 import { d } from "@/lib/ui";
 
 const FOLLOWER_STEPS = [5000, 10000, 15000, 20000, 30000, 50000];
@@ -24,6 +24,8 @@ export default function Influencers() {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchMsg, setSearchMsg] = useState<string | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [linkMsg, setLinkMsg] = useState<string | null>(null);
 
   // Web'de yeni aday arar, listeye ekler ve Instagram'dan doğrular. Mail/DM göndermez.
   // Aynı düğmeye basış: çoktan aza → azdan çoğa → varsayılan sıra.
@@ -50,6 +52,30 @@ export default function Influencers() {
       setSearchMsg(e instanceof Error ? e.message : "Arama başarısız");
     } finally {
       setSearching(false);
+    }
+  }
+
+  // Bio linklerinden TikTok hesabı ve mail bulur (boş alanları doldurur). Mail/DM göndermez.
+  async function scanLinks() {
+    if (readOnly) return;
+    setLinking(true);
+    setLinkMsg(null);
+    try {
+      const res = await fetch("/api/linkscan", { cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Link tarama başarısız");
+      if (json.picked === 0) setLinkMsg("Taranacak link kalmadı");
+      else {
+        const parts = [`${json.picked} link tarandı`, `${json.tiktok} TikTok`, `${json.email} mail bulundu`];
+        if (json.ambiguous > 0) parts.push(`${json.ambiguous} belirsiz`);
+        if (json.failed > 0) parts.push(`${json.failed} açılamadı`);
+        setLinkMsg(parts.join(" · "));
+      }
+      router.refresh();
+    } catch (e) {
+      setLinkMsg(e instanceof Error ? e.message : "Link tarama başarısız");
+    } finally {
+      setLinking(false);
     }
   }
 
@@ -97,6 +123,21 @@ export default function Influencers() {
           >
             {searching ? "Aranıyor…" : "Aday ara"}
           </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ marginLeft: 8 }}
+            onClick={scanLinks}
+            disabled={linking || readOnly}
+            title={readOnly ? "Bu hesap salt okunur" : "Bio linklerinden TikTok hesabı ve mail adresi bulur"}
+          >
+            {linking ? "Linkler taranıyor…" : "Linkleri tara"}
+          </button>
+          {linkMsg && (
+            <p className="muted" role="status" style={{ marginTop: 6 }}>
+              {linkMsg}
+            </p>
+          )}
           {searchMsg && (
             <p className="muted" role="status" style={{ marginTop: 6 }}>
               {searchMsg}
@@ -317,6 +358,14 @@ function Row({
           <a href={profileUrl(inf)} target="_blank" rel="noopener noreferrer" className="handle">
             <Icon name={inf.platform === "instagram" ? "ig" : "tt"} size={14} /> @{inf.handle}
           </a>
+          {inf.tiktok && (
+            <>
+              <span className="dotsep">·</span>
+              <a href={tiktokUrl(inf.tiktok)} target="_blank" rel="noopener noreferrer" className="handle">
+                <Icon name="tt" size={14} /> @{inf.tiktok}
+              </a>
+            </>
+          )}
           <span className="dotsep">·</span>
           <span>{inf.niche || "alan yok"}</span>
           <span className="dotsep">·</span>

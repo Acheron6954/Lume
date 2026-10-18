@@ -14,6 +14,7 @@ export type Influencer = {
   engagement: number | null; // (ort. beğeni + ort. yorum) ÷ takipçi, 0..1; yeterli veri yoksa null
   verified: boolean; // Instagram'dan doğrulandı mı (takipçi/etkileşim gerçek veri mi)
   email?: string;
+  tiktok?: string; // bio linkinden bulunan TikTok kullanıcı adı (@ olmadan)
   foundAt: string; // ISO
   scannedAt?: string; // ISO, son Instagram taraması
 };
@@ -51,6 +52,7 @@ export type InfluencerRow = {
   niche: string | null;
   instagram: string | null;
   email: string | null;
+  tiktok?: string | null;
   followers: number | null;
   engagement_rate: number | string | null; // yüzde olarak saklanır (1,76 = %1,76)
   avg_likes: number | null;
@@ -60,6 +62,18 @@ export type InfluencerRow = {
   last_scanned_at: string | null;
   found_at: string | null;
 };
+
+const TIKTOK_RE = /^[A-Za-z0-9._]{2,24}$/;
+
+/** "@ad", tiktok.com/@ad adresi ya da düz ad gelebilir; geçerliyse düz kullanıcı adını döner. */
+export function cleanTiktok(v: string | null | undefined): string | undefined {
+  const s = (v ?? "")
+    .trim()
+    .replace(/^(?:https?:\/\/)?(?:www\.|m\.)?tiktok\.com\/@/i, "")
+    .replace(/^@/, "")
+    .replace(/[/?#].*$/, "");
+  return TIKTOK_RE.test(s) ? s : undefined;
+}
 
 export function rowToInfluencer(r: InfluencerRow): Influencer {
   const verified = r.scan_status === "ok";
@@ -77,6 +91,7 @@ export function rowToInfluencer(r: InfluencerRow): Influencer {
     engagement: enough ? rate / 100 : null,
     verified,
     email: r.email?.trim() || undefined,
+    tiktok: cleanTiktok(r.tiktok),
     foundAt: r.found_at ?? new Date(0).toISOString(),
     scannedAt: r.last_scanned_at ?? undefined,
   };
@@ -105,6 +120,8 @@ export const profileUrl = (i: Pick<Influencer, "platform" | "handle">): string =
   i.platform === "instagram"
     ? `https://www.instagram.com/${encodeURIComponent(i.handle)}/`
     : `https://www.tiktok.com/@${encodeURIComponent(i.handle)}`;
+
+export const tiktokUrl = (handle: string): string => `https://www.tiktok.com/@${encodeURIComponent(handle)}`;
 
 // --- Mail şablonu -----------------------------------------------------------
 

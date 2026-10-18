@@ -100,3 +100,15 @@ test("sıralama: çoktan aza / azdan çoğa, verisi olmayanlar hep sonda, orijin
   assert.equal(sortInfluencers(list, null, "desc"), list);
   assert.deepEqual(list.map((i) => i.id), ["a", "b", "c", "d"]);
 });
+
+import { cleanTiktok, tiktokUrl } from "../lib/influencer";
+
+test("TikTok adı: @, adres ve bozuk değerler temizlenir", () => {
+  assert.equal(cleanTiktok("ayse.cilt"), "ayse.cilt");
+  assert.equal(cleanTiktok("@Ayse_1"), "Ayse_1");
+  assert.equal(cleanTiktok("https://www.tiktok.com/@ayse.cilt?lang=tr"), "ayse.cilt");
+  assert.equal(cleanTiktok(" tiktok.com/@ab "), "ab", "şemasız adres de çözülür");
+  for (const bad of [null, undefined, "", "a", "x".repeat(25), "a b", "<script>"]) assert.equal(cleanTiktok(bad), undefined, String(bad));
+  assert.equal(tiktokUrl("ayse.cilt"), "https://www.tiktok.com/@ayse.cilt");
+  assert.equal(rowToInfluencer({ id: "1", name: "A", niche: null, instagram: "a", email: null, tiktok: "@a_b", followers: 1, engagement_rate: null, avg_likes: null, avg_comments: null, posts_analyzed: null, scan_status: null, last_scanned_at: null, found_at: null }).tiktok, "a_b");
+});
