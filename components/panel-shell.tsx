@@ -13,6 +13,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Genel Bakış", icon: "home" },
   { href: "/influencerlar", label: "Influencerlar", icon: "users" },
   { href: "/mailler", label: "Mail Kontrol", icon: "mail" },
+  { href: "/dm", label: "DM Kontrol", icon: "ig" },
 ];
 
 function Shell({ user, children }: { user: string; children: ReactNode }) {
