@@ -16,6 +16,7 @@ import {
 } from "@/lib/influencer";
 import { LIMITS, approvedCount, draftBody, draftSubject, manualReady, type ManualMail } from "@/lib/panel-state";
 import { d } from "@/lib/ui";
+import { SendBar } from "./send-bar";
 
 type Tab = "drafts" | "manual" | "recontact" | "template";
 
@@ -27,8 +28,6 @@ export default function Mails() {
 
   const chosen = useMemo(() => all.filter((i) => state.selected.includes(i.id)), [all, state.selected]);
   const totalDrafts = chosen.length + state.manual.length;
-  const ready = approvedCount(state);
-
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "drafts", label: "Taslaklar", count: totalDrafts },
     { id: "manual", label: "Manuel mail" },
@@ -73,14 +72,7 @@ export default function Mails() {
         </fieldset>
       </div>
 
-      <div className="send-bar rise" style={d(300)}>
-        <p className="small">
-          <b className="num">{ready}</b> mail gönderime hazır. <span className="muted">Gmail bağlantısı kurulana kadar gönderim kapalı.</span>
-        </p>
-        <button type="button" className="btn btn-primary" disabled title="Gmail bağlantısı henüz kurulmadı">
-          Gönder
-        </button>
-      </div>
+      <SendBar />
     </div>
   );
 }
