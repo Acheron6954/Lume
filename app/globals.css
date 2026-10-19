@@ -905,6 +905,29 @@ html.intro-done .funnel-fill {
   color: rgb(245 237 224 / 0.45);
 }
 
+/* ===== 404 sayfası ===== */
+.notfound-card {
+  text-align: center;
+}
+.notfound-code {
+  font-family: var(--f-display);
+  font-size: 72px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #f8bae8, #8a9bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.notfound-title {
+  margin-top: 18px;
+  font-family: var(--f-display);
+  font-size: 26px;
+  font-weight: 600;
+  color: #f5ede0;
+}
+
 /* ===== Influencer listesi ===== */
 .controls {
   display: grid;
