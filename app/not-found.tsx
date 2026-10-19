@@ -16,7 +16,7 @@ export default function NotFound() {
           <span className="orb orb-lg" aria-hidden="true" />
           <p className="notfound-code" aria-hidden="true">404</p>
         </div>
-        <h1 className="notfound-title">Bu sayfa kara delike düştü</h1>
+        <h1 className="notfound-title">Bu sayfa kara delik tarafından yutuldu</h1>
         <p className="login-sub">Aradığın sayfa yok ya da taşınmış olabilir.</p>
         <Link href="/" className="btn btn-primary btn-block">
           Ana sayfaya dön
