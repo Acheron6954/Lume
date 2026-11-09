@@ -31,3 +31,10 @@ create table if not exists public.dm_settings (
 -- Tarayıcı anahtarıyla erişilemesin: RLS açık, politika yok. Sunucu service key ile okur/yazar.
 alter table public.dm_items enable row level security;
 alter table public.dm_settings enable row level security;
+
+-- 3) Sunucu (service_role) yetkileri. Bu tablolar yetkisiz oluşturulmuştu; Gmail bağlama 42501 ile kaydedemiyordu.
+-- Yalnızca service_role'a verilir; tarayıcı anahtarı (anon/authenticated) erişemez.
+grant select, insert, update, delete on table public.gmail_auth to service_role;
+grant select, insert, update, delete on table public.sent_mail to service_role;
+grant select, insert, update, delete on table public.dm_items to service_role;
+grant select, insert, update, delete on table public.dm_settings to service_role;
