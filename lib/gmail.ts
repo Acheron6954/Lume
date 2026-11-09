@@ -10,6 +10,28 @@ export const SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 export const METADATA_SCOPE = "https://www.googleapis.com/auth/gmail.metadata";
 export const SCOPE = `${SEND_SCOPE} ${METADATA_SCOPE} openid email`;
 
+// Google'ın geri döndüğü adres (Google Console'daki redirect URI ile birebir aynı olmalı).
+export const CALLBACK_PATH = "/api/gmail/callback";
+// Asıl işi yapan adım; ara sayfa buraya site içinden yönlendirir.
+export const COMPLETE_PATH = "/api/gmail/complete";
+
+const escapeHtml = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+/**
+ * Google'dan dönüşü karşılayan ara sayfa. Safari, Google'ın başlattığı yönlendirmede oturum çerezini göndermeyebiliyor;
+ * bu sayfa kullanıcıyı site içinden COMPLETE_PATH'e taşır, o istekte çerezler gelir.
+ * Yalnızca code, state ve error parametreleri taşınır; değerler kaçışlanır.
+ */
+export function bouncePage(search: URLSearchParams): string {
+  const q = new URLSearchParams();
+  for (const k of ["code", "state", "error"]) {
+    const v = search.get(k);
+    if (v !== null) q.set(k, v.slice(0, 2048));
+  }
+  const target = escapeHtml(`${COMPLETE_PATH}?${q.toString()}`);
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url=${target}"><title>Gmail bağlanıyor…</title></head><body style="background:#0b0a1a;color:#ddd;font-family:system-ui,sans-serif;padding:40px">Gmail bağlanıyor… Yönlenmezse <a style="color:#c9a7ff" href="${target}">buraya tıkla</a>.</body></html>`;
+}
+
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 export type OAuthCfg = { clientId: string; clientSecret: string; redirectUri: string };
 

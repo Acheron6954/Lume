@@ -100,3 +100,16 @@ test("fetchThread: yalnızca metadata ister, 404'te null, hatada fırlatır, kö
   await assert.rejects(fetchThread("tok", "abc123", reply({ error: { message: "Insufficient Permission" } }, 403)), /Insufficient Permission/);
   await assert.rejects(fetchThread("tok", "../../x", reply({})), /bad_thread_id/);
 });
+
+test("bouncePage: yalnızca code/state/error taşır, kaçışlar, complete'e yönlendirir", async () => {
+  const { bouncePage, COMPLETE_PATH } = await import("../lib/gmail");
+  const html = bouncePage(new URLSearchParams({ code: "4/0Ab_x", state: "abc123", scope: "gizli", extra: "x" }));
+  assert.ok(html.includes(`url=${COMPLETE_PATH}?code=4%2F0Ab_x&amp;state=abc123`));
+  assert.ok(!html.includes("scope") && !html.includes("extra"));
+  const evil = bouncePage(new URLSearchParams({ code: '"><script>alert(1)</script>' }));
+  assert.ok(!evil.includes("<script>"));
+  assert.ok(!evil.includes('"><script'));
+  assert.ok(evil.includes("%22%3E%3Cscript%3E")); // URL kodlanmış olarak taşınır
+  assert.ok(bouncePage(new URLSearchParams({ error: "access_denied" })).includes("error=access_denied"));
+  assert.ok(bouncePage(new URLSearchParams({ code: "a".repeat(5000) })).length < 6000);
+});

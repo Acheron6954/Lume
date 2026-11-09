@@ -13,6 +13,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Google'dan dönüş: Safari bu yönlendirmede oturum çerezini göndermeyebilir. Rota yalnızca site içi bir ara sayfa döner;
+  // asıl iş (/api/gmail/complete) yine oturum ister.
+  if (request.nextUrl.pathname === "/api/gmail/callback") {
+    return NextResponse.next();
+  }
+
   // Salt okunur hesap: sayfaları görür ama hiçbir API'yi (tarama, aday arama) çalıştıramaz.
   if (session?.role === "viewer" && request.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Bu hesap salt okunur." }, { status: 403 });

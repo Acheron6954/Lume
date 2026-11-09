@@ -2,7 +2,7 @@
 import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
 import { SESSION_COOKIE, readConfig, readSession } from "@/lib/auth";
-import { authUrl } from "@/lib/gmail";
+import { CALLBACK_PATH, authUrl } from "@/lib/gmail";
 
 export const dynamic = "force-dynamic";
 export const STATE_COOKIE = "lume-gmail-state";
@@ -21,5 +21,5 @@ export async function GET(req: Request) {
   const origin = new URL(req.url).origin;
   const state = randomBytes(16).toString("hex");
   store.set(STATE_COOKIE, state, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/api/gmail", maxAge: 600 });
-  return Response.redirect(authUrl({ clientId, redirectUri: `${origin}/api/gmail/callback` }, state), 302);
+  return Response.redirect(authUrl({ clientId, redirectUri: `${origin}${CALLBACK_PATH}` }, state), 302);
 }
