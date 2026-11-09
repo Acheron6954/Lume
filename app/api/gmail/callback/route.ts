@@ -8,6 +8,15 @@ export const dynamic = "force-dynamic";
 
 const back = (origin: string, status: string) => Response.redirect(`${origin}/mailler?gmail=${status}`, 302);
 
+/** Google'ın token hatasını panelde gösterilecek kısa bir duruma çevirir. */
+function callbackReason(msg: string): string {
+  if (msg === "scope_missing") return "izin";
+  if (msg === "invalid_client" || msg === "unauthorized_client") return "istemci";
+  if (msg === "invalid_grant") return "kod";
+  if (msg === "no_refresh_token") return "token";
+  return "hata";
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const origin = url.origin;
@@ -20,7 +29,11 @@ export async function GET(req: Request) {
   store.delete({ name: "lume-gmail-state", path: "/api/gmail" });
   if (url.searchParams.get("error")) return back(origin, "iptal");
   const code = url.searchParams.get("code");
-  if (!expected || !code || url.searchParams.get("state") !== expected) return back(origin, "hata");
+  if (!code) return back(origin, "hata");
+  if (!expected || url.searchParams.get("state") !== expected) {
+    console.error("gmail callback: state tutmadı", { stateCookie: !!expected });
+    return back(origin, "durum");
+  }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -30,9 +43,15 @@ export async function GET(req: Request) {
   try {
     const { refreshToken, email } = await exchangeCode(code, { clientId, clientSecret, redirectUri: `${origin}/api/gmail/callback` });
     const { error } = await db.from("gmail_auth").upsert({ id: "main", email, refresh_token: refreshToken, connected_at: new Date().toISOString() });
-    if (error) return back(origin, "hata");
+    if (error) {
+      console.error("gmail callback: kayıt hatası", error.code);
+      return back(origin, "kayit");
+    }
     return back(origin, "ok");
   } catch (e) {
-    return back(origin, e instanceof Error && e.message === "scope_missing" ? "izin" : "hata");
+    // Yalnızca Google'ın hata kodu yazılır (invalid_client gibi); token ya da secret asla loglanmaz.
+    const msg = e instanceof Error ? e.message : "bilinmiyor";
+    console.error("gmail callback: token değişimi başarısız", msg);
+    return back(origin, callbackReason(msg));
   }
 }

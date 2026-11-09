@@ -9,6 +9,20 @@ type Status = { configured: boolean; connected: boolean; email: string | null; s
 type Row = { key: string; kind: "inf" | "manual"; refId: string; name: string; to: string; subject: string; body: string; repeat: boolean };
 type Result = { key: string; ok: boolean; error?: string };
 
+// Google'dan dönüşte /mailler?gmail=<durum> gelir; durumu okunur bir mesaja çevirir.
+const CONNECT_MSG: Record<string, { ok: boolean; text: string }> = {
+  ok: { ok: true, text: "Gmail bağlandı." },
+  iptal: { ok: false, text: "Google ekranında izin verilmedi ya da iptal edildi." },
+  izin: { ok: false, text: "İki izinden biri verilmedi. Yeniden bağlanırken iki kutuyu da işaretle." },
+  ayar: { ok: false, text: "Sunucu ayarları eksik (Google ya da Supabase anahtarı). Vercel değişkenlerini kontrol edip yeniden deploy et." },
+  durum: { ok: false, text: "Güvenlik kontrolü tutmadı (oturum süresi dolmuş olabilir). Sayfayı yenileyip yeniden dene." },
+  istemci: { ok: false, text: "Google, Client ID ya da secret'ı kabul etmedi. Vercel'deki GOOGLE_CLIENT_SECRET, Google'da etkin olan secret ile aynı olmalı." },
+  kod: { ok: false, text: "Google'dan gelen onay kodu geçersiz ya da süresi doldu. Yeniden bağlamayı dene." },
+  token: { ok: false, text: "Google kalıcı erişim anahtarı vermedi. Yeniden bağlamayı dene." },
+  kayit: { ok: false, text: "Bağlantı veritabanına kaydedilemedi." },
+  hata: { ok: false, text: "Bağlantı tamamlanamadı. Yeniden dene; sürerse bana haber ver." },
+};
+
 export function SendBar() {
   const { all, state, dispatch, readOnly } = usePanel();
   const [status, setStatus] = useState<Status | null>(null);
@@ -18,6 +32,17 @@ export function SendBar() {
   const [done, setDone] = useState<{ ok: number; errors: { name: string; error: string }[] } | null>(null);
 
   const [tick, setTick] = useState(0); // arttıkça durum yeniden okunur
+  const [connectMsg, setConnectMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const g = q.get("gmail");
+    if (!g) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setConnectMsg(CONNECT_MSG[g] ?? CONNECT_MSG.hata);
+    q.delete("gmail");
+    const rest = q.toString();
+    window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
+  }, []);
   useEffect(() => {
     if (readOnly) return;
     let live = true;
@@ -107,7 +132,7 @@ export function SendBar() {
     note = <span className="muted">Gmail kurulumu bekliyor: Vercel&apos;e GOOGLE_CLIENT_ID ve GOOGLE_CLIENT_SECRET eklenmeli.</span>;
     action = <button type="button" className="btn btn-primary" disabled>Gönder</button>;
   } else if (!status.connected) {
-    note = <span className="muted">Gmail bağlı değil. Bağlamak yalnızca mail gönderme izni verir.</span>;
+    note = <span className="muted">Gmail bağlı değil. Bağlamak iki izin ister: mail gönderme ve yanıt takibi için başlıkları okuma (mail içeriği okunmaz).</span>;
     action = (
       <a className="btn btn-primary" href="/api/gmail/connect">
         Gmail&apos;i bağla
@@ -129,6 +154,11 @@ export function SendBar() {
 
   return (
     <>
+      {connectMsg && (
+        <p className={connectMsg.ok ? "muted small" : "issue"} role={connectMsg.ok ? "status" : "alert"}>
+          {!connectMsg.ok && <Icon name="warn" size={14} />} {connectMsg.text}
+        </p>
+      )}
       {confirming && (
         <section className="card" role="alertdialog" aria-label="Gönderimi onayla">
           <div className="card-head">
