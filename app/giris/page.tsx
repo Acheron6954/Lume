@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { d } from "@/lib/ui";
 import { LoginForm } from "./login-form";
 
@@ -18,7 +19,12 @@ export default function LoginPage() {
         </div>
         <p className="login-sub">Kreatör paneline giriş</p>
         <LoginForm />
-        <p className="login-fine">Bu alan yalnızca yetkili kullanıcılar içindir.</p>
+        <p className="login-fine">
+          Hesabın yok mu? <Link href="/kayit">Üye ol</Link>. Üyelikler onaylandıktan sonra giriş açılır.
+        </p>
+        <p className="login-fine">
+          <Link href="/">← Ana sayfaya dön</Link>
+        </p>
       </section>
     </main>
   );

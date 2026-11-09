@@ -17,6 +17,8 @@ const PATHS = {
   repeat: "m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3",
   trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",
   pen: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z",
+  inbox: "M3 13h5l1.5 3h5L16 13h5M5.5 5h13L21 13v6H3v-6Z",
+  key: "M14.5 9.5a4.5 4.5 0 1 1-4.3 3.2L3 20v-3h3v-3h3l1.2-1.2A4.5 4.5 0 0 1 14.5 9.5ZM16 8h.01",
 } as const;
 
 export type IconName = keyof typeof PATHS;

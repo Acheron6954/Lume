@@ -13,6 +13,7 @@ import {
   recordSuccess,
   signSession,
 } from "@/lib/auth";
+import { checkMember } from "@/lib/members-db";
 
 export type LoginState = { error?: string };
 
@@ -31,10 +32,23 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     return { error: `Çok fazla hatalı deneme. ${Math.ceil(wait / 60000)} dakika sonra tekrar dene.` };
   }
 
-  const username = String(formData.get("username") ?? "").trim().slice(0, 64);
+  const username = String(formData.get("username") ?? "").trim().slice(0, 160);
   const password = String(formData.get("password") ?? "").slice(0, 128);
 
-  const role = authenticate(username, password, cfg);
+  // Önce sahip/izleyici (ortam değişkenleri), sonra onaylı üyeler (e-posta ile).
+  const envRole = authenticate(username, password, cfg);
+  let sessionUser = envRole === "viewer" && cfg.viewer ? cfg.viewer.user : cfg.user;
+  let role = envRole;
+  if (!role && username.includes("@")) {
+    const member = await checkMember(username, password);
+    if (member?.status === "pending") {
+      return { error: "Hesabın henüz onaylanmadı. Onaylandığında giriş yapabilirsin." };
+    }
+    if (member?.status === "approved") {
+      role = member.role;
+      sessionUser = member.email;
+    }
+  }
   if (!role) {
     recordFail(`ip:${ip}`, MAX_FAILS_PER_IP);
     recordFail("global", MAX_FAILS_GLOBAL);
@@ -44,8 +58,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   recordSuccess(`ip:${ip}`);
   const store = await cookies();
-  // Oturumdaki ad, girilen hesabın kendi adıdır (viewer ise viewer'ın adı).
-  const sessionUser = role === "viewer" && cfg.viewer ? cfg.viewer.user : cfg.user;
+  // Oturumdaki ad, girilen hesabın kendi adıdır (izleyici ise izleyicinin adı, üye ise e-postası).
   store.set(SESSION_COOKIE, signSession(sessionUser, cfg.secret, Date.now(), role), {
     httpOnly: true,
     sameSite: "lax",
@@ -53,7 +66,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     path: "/",
     // maxAge yok: oturum çerezi, tarayıcı tamamen kapanınca silinir (sunucu tarafı süre yine token içinde).
   });
-  redirect("/");
+  redirect("/panel");
 }
 
 export async function logout() {

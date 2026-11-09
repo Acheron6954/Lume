@@ -1778,3 +1778,39 @@ html.intro-done .scatter .pt {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
+
+/* ===== Giriş / kayıt bağlantıları ===== */
+.login-fine a {
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+.login-fine + .login-fine {
+  margin-top: 8px;
+}
+.form-ok {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ok);
+}
+.kvkk-line {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+.kvkk-line input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.hp-field {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

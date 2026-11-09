@@ -8,7 +8,7 @@ export function LoginForm() {
   return (
     <form action={action} onSubmit={markLoggedIn} className="login-form">
       <label className="field">
-        <span>Kullanıcı adı</span>
+        <span>Kullanıcı adı veya e-posta</span>
         <input name="username" className="input" autoComplete="username" autoCapitalize="none" spellCheck={false} required />
       </label>
       <label className="field">

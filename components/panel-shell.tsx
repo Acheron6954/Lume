@@ -10,13 +10,16 @@ import type { Influencer } from "@/lib/influencer";
 import { approvedCount } from "@/lib/panel-state";
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
-  { href: "/", label: "Genel Bakış", icon: "home" },
+  { href: "/panel", label: "Genel Bakış", icon: "home" },
   { href: "/influencerlar", label: "Influencerlar", icon: "users" },
   { href: "/mailler", label: "Mail Kontrol", icon: "mail" },
   { href: "/dm", label: "DM Kontrol", icon: "ig" },
+  { href: "/basvurular", label: "Başvurular", icon: "inbox" },
 ];
+// Yalnızca site sahibine görünür.
+const OWNER_NAV = [{ href: "/uyeler", label: "Üyeler", icon: "key" as IconName }];
 
-function Shell({ user, children }: { user: string; children: ReactNode }) {
+function Shell({ user, isOwner, children }: { user: string; isOwner: boolean; children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const { state, loadError, readOnly } = usePanel();
   const phase = useNavPhase();
@@ -36,13 +39,13 @@ function Shell({ user, children }: { user: string; children: ReactNode }) {
       <div className="bg bg-night" aria-hidden="true" />
 
       <aside className="sidebar">
-        <TransitionLink href="/" className="brand" aria-label="Lume ana sayfa">
+        <TransitionLink href="/panel" className="brand" aria-label="Lume panel ana sayfa">
           <span className="orb" aria-hidden="true" />
           <span className="wordmark">L&apos;UME</span>
         </TransitionLink>
         <nav className="nav" aria-label="Ana menü">
-          {NAV.map((n) => {
-            const active = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
+          {(isOwner ? [...NAV, ...OWNER_NAV] : NAV).map((n) => {
+            const active = n.href === "/panel" ? pathname === "/panel" : pathname.startsWith(n.href);
             return (
               <TransitionLink key={n.href} href={n.href} className="nav-link" aria-current={active ? "page" : undefined}>
                 <Icon name={n.icon} />
@@ -84,18 +87,20 @@ export function PanelShell({
   influencers,
   loadError,
   readOnly = false,
+  isOwner = false,
   children,
 }: {
   user: string;
   influencers: Influencer[];
   loadError: string | null;
   readOnly?: boolean;
+  isOwner?: boolean;
   children: ReactNode;
 }) {
   return (
     <PanelProvider influencers={influencers} loadError={loadError} readOnly={readOnly}>
       <NavTransitionProvider>
-        <Shell user={user}>{children}</Shell>
+        <Shell user={user} isOwner={isOwner}>{children}</Shell>
       </NavTransitionProvider>
     </PanelProvider>
   );

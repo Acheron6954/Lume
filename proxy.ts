@@ -1,12 +1,19 @@
-// Next 16'da "middleware" yerine "proxy". Oturumu olmayan herkes /giris'e gider.
+// Next 16'da "middleware" yerine "proxy". Herkese açık tanıtım sayfası ve başvuru dışında oturumu olmayan herkes /giris'e gider.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, cronAuthorized, readConfig, readSession } from "@/lib/auth";
 
+const PUBLIC_PATHS = new Set(["/", "/api/basvuru", "/api/cikis"]);
+
 export function proxy(request: NextRequest) {
   const cfg = readConfig();
   const session = cfg ? readSession(request.cookies.get(SESSION_COOKIE)?.value, cfg.secret) : null;
-  const onLogin = request.nextUrl.pathname === "/giris";
+  const onLogin = request.nextUrl.pathname === "/giris" || request.nextUrl.pathname === "/kayit";
+
+  // Herkese açık: tanıtım sayfası ve başvuru formu. Oturum gerekmez; başvuru rotası kendi doğrulamasını yapar.
+  if (PUBLIC_PATHS.has(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
 
   // Günlük aday arama: Vercel Cron oturum açamaz, gizli anahtarla gelir (rota da ayrıca doğrular).
   if (request.nextUrl.pathname === "/api/discover" && cronAuthorized(request.headers.get("authorization"))) {
@@ -32,7 +39,7 @@ export function proxy(request: NextRequest) {
   }
   if (session && onLogin) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/panel";
     url.search = "";
     return NextResponse.redirect(url);
   }
