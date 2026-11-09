@@ -1,4 +1,4 @@
-// Gmail bağlama: yöneticiyi Google izin ekranına gönderir. Yalnızca "gmail.send" (mail gönderme) izni istenir.
+// Gmail bağlama: yöneticiyi Google izin ekranına gönderir. İstenen izinler: "gmail.send" (mail gönderme) ve "gmail.metadata" (yalnızca üstbilgi/etiket okuma, yanıt takibi için; mail içeriği okunamaz).
 import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
 import { SESSION_COOKIE, readConfig, readSession } from "@/lib/auth";

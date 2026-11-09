@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     const { error } = await db.from("gmail_auth").upsert({ id: "main", email, refresh_token: refreshToken, connected_at: new Date().toISOString() });
     if (error) return back(origin, "hata");
     return back(origin, "ok");
-  } catch {
-    return back(origin, "hata");
+  } catch (e) {
+    return back(origin, e instanceof Error && e.message === "scope_missing" ? "izin" : "hata");
   }
 }

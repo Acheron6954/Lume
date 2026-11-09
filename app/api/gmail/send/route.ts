@@ -2,7 +2,7 @@
 // sunucu ayrıca günlük sınırı, adres geçerliliğini ve aynı adrese ikinci mail gitmesini denetler.
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, readConfig, readSession } from "@/lib/auth";
-import { DAILY_LIMIT, MAX_PER_REQUEST, accessToken, buildRaw, istanbulDayStart, remainingToday, sendRaw, validateOutgoing } from "@/lib/gmail";
+import { DAILY_LIMIT, MAX_PER_REQUEST, accessToken, buildRaw, istanbulDayStart, remainingToday, sendRawFull, validateOutgoing } from "@/lib/gmail";
 import { adminClient } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
@@ -69,9 +69,9 @@ export async function POST(req: Request) {
     }
     seen.add(addr);
     try {
-      const id = await sendRaw(token, buildRaw(auth.email, m));
+      const { id, threadId } = await sendRawFull(token, buildRaw(auth.email, m));
       left -= 1;
-      await db.from("sent_mail").insert({ influencer_id: infId, to_email: m.to, subject: m.subject, gmail_message_id: id });
+      await db.from("sent_mail").insert({ influencer_id: infId, to_email: m.to, subject: m.subject, gmail_message_id: id, gmail_thread_id: threadId });
       if (infId) {
         await db.from("emails").insert({ influencer_id: infId, direction: "giden", subject: m.subject, body: m.body, gmail_message_id: id });
         await db.from("influencers").update({ status: "mail_atildi", updated_at: new Date().toISOString() }).eq("id", infId).eq("status", "bulundu");

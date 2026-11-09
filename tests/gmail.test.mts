@@ -1,18 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { authUrl, buildRaw, emailFromIdToken, exchangeCode, accessToken, istanbulDayStart, remainingToday, sendRaw, validateOutgoing, DAILY_LIMIT } from "../lib/gmail";
+import { authUrl, buildRaw, emailFromIdToken, exchangeCode, accessToken, fetchThread, istanbulDayStart, remainingToday, sendRaw, sendRawFull, validateOutgoing, DAILY_LIMIT } from "../lib/gmail";
 
 const cfg = { clientId: "cid", clientSecret: "sec", redirectUri: "https://x.test/api/gmail/callback" };
 const jwt = (p: object) => `h.${Buffer.from(JSON.stringify(p)).toString("base64url")}.s`;
 const reply = (body: object, status = 200) => async () => new Response(JSON.stringify(body), { status });
 
-test("authUrl yalnızca gmail.send ister ve state taşır", () => {
+test("authUrl yalnızca gmail.send ve gmail.metadata ister, state taşır", () => {
   const u = new URL(authUrl(cfg, "abc"));
   assert.equal(u.searchParams.get("state"), "abc");
   assert.equal(u.searchParams.get("access_type"), "offline");
   const scope = u.searchParams.get("scope") ?? "";
   assert.ok(scope.includes("gmail.send"));
-  assert.ok(!scope.includes("readonly") && !scope.includes("mail.google.com"));
+  assert.ok(scope.includes("gmail.metadata"));
+  // İçerik okuma ve tam erişim izinleri istenmez
+  assert.ok(!scope.includes("readonly") && !scope.includes("mail.google.com") && !scope.includes("gmail.modify") && !scope.includes("gmail.compose"));
 });
 
 test("validateOutgoing başlık enjeksiyonunu ve kötü adresi reddeder", () => {
@@ -43,10 +45,12 @@ test("emailFromIdToken", () => {
 });
 
 test("exchangeCode: refresh token ve e-posta; eksikse hata", async () => {
-  const ok = await exchangeCode("kod", cfg, reply({ refresh_token: "r1", id_token: jwt({ email: "ben@gmail.com" }), scope: "openid email https://www.googleapis.com/auth/gmail.send" }));
+  const ok = await exchangeCode("kod", cfg, reply({ refresh_token: "r1", id_token: jwt({ email: "ben@gmail.com" }), scope: "openid email https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.metadata" }));
   assert.deepEqual(ok, { refreshToken: "r1", email: "ben@gmail.com" });
   await assert.rejects(exchangeCode("kod", cfg, reply({ id_token: jwt({ email: "ben@gmail.com" }) })), /no_refresh_token/);
   await assert.rejects(exchangeCode("kod", cfg, reply({ refresh_token: "r", id_token: jwt({ email: "a@b.com" }), scope: "openid email" })), /scope_missing/);
+  // Yalnızca gönderme izni verilip metadata işaretsiz bırakılırsa da bağlanmaz
+  await assert.rejects(exchangeCode("kod", cfg, reply({ refresh_token: "r", id_token: jwt({ email: "a@b.com" }), scope: "openid email https://www.googleapis.com/auth/gmail.send" })), /scope_missing/);
   await assert.rejects(exchangeCode("kod", cfg, reply({ error: "invalid_grant" }, 400)), /invalid_grant/);
 });
 
@@ -70,4 +74,29 @@ test("istanbulDayStart ve kalan hak", () => {
   assert.equal(istanbulDayStart(new Date("2026-10-17T21:30:00Z")), "2026-10-17T21:00:00.000Z");
   assert.equal(remainingToday(0), DAILY_LIMIT);
   assert.equal(remainingToday(999), 0);
+});
+
+test("sendRawFull konuşma kimliğini döndürür; yoksa null", async () => {
+  assert.deepEqual(await sendRawFull("t", "RAW", reply({ id: "m1", threadId: "abc123" })), { id: "m1", threadId: "abc123" });
+  assert.deepEqual(await sendRawFull("t", "RAW", reply({ id: "m1" })), { id: "m1", threadId: null });
+});
+
+test("fetchThread: yalnızca metadata ister, 404'te null, hatada fırlatır, kötü kimliği reddeder", async () => {
+  let url = "";
+  let auth = "";
+  const f = async (u: string, init?: RequestInit) => {
+    url = u;
+    auth = (init?.headers as Record<string, string>).Authorization;
+    return new Response(JSON.stringify({ id: "abc123", messages: [] }));
+  };
+  const t = await fetchThread("tok", "abc123", f);
+  assert.equal(t?.id, "abc123");
+  assert.equal(auth, "Bearer tok");
+  const u = new URL(url);
+  assert.equal(u.pathname, "/gmail/v1/users/me/threads/abc123");
+  assert.equal(u.searchParams.get("format"), "metadata");
+  assert.deepEqual(u.searchParams.getAll("metadataHeaders").slice(0, 2), ["From", "Subject"]);
+  assert.equal(await fetchThread("tok", "abc123", async () => new Response("{}", { status: 404 })), null);
+  await assert.rejects(fetchThread("tok", "abc123", reply({ error: { message: "Insufficient Permission" } }, 403)), /Insufficient Permission/);
+  await assert.rejects(fetchThread("tok", "../../x", reply({})), /bad_thread_id/);
 });

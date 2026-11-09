@@ -1,13 +1,14 @@
 "use client";
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePanel } from "@/components/panel-store";
 import { TransitionLink } from "@/components/transition-link";
-import { DM_LIMIT, DM_NOTE_LIMIT, dmDraft, dmHandle, dmReduce, dmStatus, dmUrl, initialDm, sanitizeDm, type DmChannel, type DmItem } from "@/lib/dm-state";
+import { DM_LIMIT, DM_NOTE_LIMIT, dmDiff, dmDraft, dmHandle, dmReduce, dmStatus, dmUrl, initialDm, sanitizeDm, type DmChannel, type DmItem } from "@/lib/dm-state";
 import { TEMPLATE_FIELDS, fmtCount, fmtDay, needsContact, type Influencer } from "@/lib/influencer";
 import { d } from "@/lib/ui";
 
-const KEY = "lume-dm-v1";
+const LEGACY_KEY = "lume-dm-v1"; // eski tarayıcı kaydı: bir kez Supabase'e aktarılır, sonra yalnızca yedek kalır
+const IMPORTED_KEY = "lume-dm-imported-v1";
 const STATUS_LABEL = { taslak: "Onay bekliyor", onayli: "Onaylandı", gonderildi: "Gönderildi", yanit: "Yanıt geldi" } as const;
 
 export default function DmKontrol() {
@@ -18,22 +19,88 @@ export default function DmKontrol() {
   const dispatch = readOnly ? () => {} : dispatchRaw;
   const [tab, setTab] = useState<"todo" | "sent" | "template">("todo");
 
-  useEffect(() => {
-    // Kayıt yoksa ya da okunamıyorsa varsayılanla hazır say; veri yüklenemediyse kayıtlı DM'ler silinmesin diye yazma yok.
-    let st = sanitizeDm({}, known);
+  const [dmError, setDmError] = useState(false); // sunucudan okunamadı: yazmayı kapat, üzerine yazma
+  const [save, setSave] = useState<"idle" | "saving" | "error">("idle");
+  const [retry, setRetry] = useState(0);
+  const synced = useRef<{ items: DmItem[]; template: string } | null>(null); // sunucuda bildiğimiz son durum
+  const importPending = useRef(false);
+
+  const markImported = () => {
     try {
-      const raw = readOnly || loadError ? null : localStorage.getItem(KEY);
-      if (raw) st = sanitizeDm(JSON.parse(raw), known);
+      localStorage.setItem(IMPORTED_KEY, "1");
     } catch {}
-    dispatchRaw({ type: "hydrate", state: st });
+  };
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      if (readOnly || loadError) {
+        dispatchRaw({ type: "hydrate", state: sanitizeDm({}, known) });
+        return;
+      }
+      try {
+        const res = await fetch("/api/dm", { cache: "no-store" });
+        if (!res.ok) throw new Error("dm");
+        const j = (await res.json()) as { template: string | null; items: unknown[] };
+        let st = sanitizeDm({ template: j.template, items: j.items }, known);
+        const base = { items: st.items, template: st.template };
+        let imported = false;
+        try {
+          imported = localStorage.getItem(IMPORTED_KEY) === "1";
+        } catch {}
+        if (!imported) {
+          try {
+            const raw = localStorage.getItem(LEGACY_KEY);
+            if (raw) {
+              const old = sanitizeDm(JSON.parse(raw), known);
+              const have = new Set(st.items.map((x) => x.id));
+              const extra = old.items.filter((x) => !have.has(x.id));
+              st = { ...st, items: [...st.items, ...extra], template: j.template ? st.template : old.template };
+              importPending.current = extra.length > 0 || st.template !== base.template;
+            }
+          } catch {}
+          if (!importPending.current) markImported();
+        }
+        if (!live) return;
+        synced.current = base; // fark, içe aktarılanları kendiliğinden sunucuya yazar
+        dispatchRaw({ type: "hydrate", state: st });
+      } catch {
+        if (live) setDmError(true);
+      }
+    })();
+    return () => {
+      live = false;
+    };
   }, [known, loadError, readOnly]);
 
   useEffect(() => {
-    if (!dm.ready || loadError || readOnly) return;
-    try {
-      localStorage.setItem(KEY, JSON.stringify({ template: dm.template, items: dm.items }));
-    } catch {}
-  }, [dm, loadError, readOnly]);
+    if (!dm.ready || readOnly || loadError || dmError || !synced.current) return;
+    const base = synced.current;
+    const diff = dmDiff(base.items, dm.items);
+    const tplChanged = dm.template !== base.template;
+    if (!diff.upsert.length && !diff.remove.length && !tplChanged) return;
+    const snapshot = { items: dm.items, template: dm.template };
+    const t = setTimeout(async () => {
+      setSave("saving");
+      try {
+        const res = await fetch("/api/dm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ upsert: diff.upsert, remove: diff.remove, ...(tplChanged ? { template: dm.template } : {}) }),
+        });
+        if (!res.ok) throw new Error("dm");
+        synced.current = snapshot;
+        if (importPending.current) {
+          importPending.current = false;
+          markImported();
+        }
+        setSave("idle");
+      } catch {
+        setSave("error");
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [dm, readOnly, loadError, dmError, retry]);
 
   const items = dm.items.filter((x) => byId.has(x.influencerId));
   const todo = items.filter((x) => !x.sentAt);
@@ -56,6 +123,20 @@ export default function DmKontrol() {
         DM&apos;ler panelden gönderilmez. Taslağı onaylarsın, “Kopyala ve aç” metni kopyalar ve sohbeti açar, mesajı sen kendi hesabından yollayıp “Gönderdim” dersin.
       </p>
 
+      {dmError && (
+        <p className="issue" role="alert">
+          <Icon name="warn" size={14} /> DM kayıtları sunucudan okunamadı, bu yüzden düzenleme kapalı (kayıtların üzerine yazılmasın diye). Sayfayı yenile.
+        </p>
+      )}
+      {save === "error" && (
+        <p className="issue" role="alert">
+          <Icon name="warn" size={14} /> Son değişiklik kaydedilemedi.{" "}
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRetry((n) => n + 1)}>
+            Tekrar dene
+          </button>
+        </p>
+      )}
+
       <div className="tabs rise" style={d(90)} role="tablist" aria-label="DM bölümleri">
         {tabs.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className="tab" onClick={() => setTab(t.id)}>
@@ -66,7 +147,7 @@ export default function DmKontrol() {
       </div>
 
       <div key={tab} className="tab-panel">
-        <fieldset disabled={readOnly} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+        <fieldset disabled={readOnly || dmError} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
           {tab === "todo" && (
             <>
               <AddCard all={all} excluded={state.excluded} selected={state.selected} dm={dm.items} template={dm.template} mail={state.mail} dispatch={dispatch} />

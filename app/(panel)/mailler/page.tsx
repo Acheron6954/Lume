@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePanel } from "@/components/panel-store";
 import { TransitionLink } from "@/components/transition-link";
@@ -15,6 +15,7 @@ import {
   type Influencer,
 } from "@/lib/influencer";
 import { LIMITS, approvedCount, draftBody, draftSubject, manualReady, type ManualMail } from "@/lib/panel-state";
+import { FOLLOWUP_DAYS, daysSince, type ReplyStatus } from "@/lib/replies";
 import { d } from "@/lib/ui";
 import { SendBar } from "./send-bar";
 
@@ -392,6 +393,7 @@ function RecontactTab({ onDrafts }: { onDrafts: () => void }) {
 
   return (
     <section aria-label="Tekrar iletişim">
+      <ReplyTracker />
       <div className="card">
         <div className="card-head">
           <h2 className="h2">Tekrar iletişime geçilecekler</h2>
@@ -428,7 +430,7 @@ function RecontactTab({ onDrafts }: { onDrafts: () => void }) {
       {state.recontact.length === 0 ? (
         <div className="card empty-card recontact-empty">
           <p>Liste boş. Yanıt vermeyen ya da yeniden yazmak istediğin hesapları yukarıdan ekle.</p>
-          <p className="muted small">Gönderim ve yanıt takibi bağlanınca, yanıt vermeyenler buraya kendiliğinden düşecek.</p>
+          <p className="muted small">Yukarıdaki yanıt takibinden, yanıt vermeyenleri tek tıkla buraya ekleyebilirsin.</p>
         </div>
       ) : (
         <ul className="recontact-list">
@@ -475,6 +477,127 @@ function RecontactTab({ onDrafts }: { onDrafts: () => void }) {
         </ul>
       )}
     </section>
+  );
+}
+
+/* ---------- Yanıt takibi ---------- */
+
+type Replies = { connected: boolean; followupDays: number; replied: number; bounced: number; awaiting: ReplyStatus[]; total: number };
+
+function ReplyTracker() {
+  const { all, state, dispatch, readOnly } = usePanel();
+  const [data, setData] = useState<Replies | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    return fetch("/api/gmail/replies", { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<Replies>) : Promise.reject(new Error("replies"))))
+      .then((j) => {
+        setData(j);
+        setFailed(false);
+      })
+      .catch(() => setFailed(true));
+  }, []);
+
+  useEffect(() => {
+    if (readOnly) return;
+    void load();
+  }, [readOnly, load]);
+
+  const sync = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/gmail/sync", { method: "POST" });
+      const j = (await res.json()) as { checked?: number; replies?: number; bounced?: number; errors?: number; error?: string };
+      if (!res.ok) throw new Error(j.error ?? "Kontrol edilemedi");
+      const parts = [`${j.checked ?? 0} konuşma kontrol edildi`, `${j.replies ?? 0} yeni yanıt`];
+      if (j.bounced) parts.push(`${j.bounced} mail ulaşmadı`);
+      if (j.errors) parts.push(`${j.errors} konuşma okunamadı`);
+      setMsg(parts.join(", ") + ".");
+      await load();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Kontrol edilemedi");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const byId = useMemo(() => new Map(all.map((i) => [i.id, i])), [all]);
+  const listed = new Set(state.recontact.map((r) => r.id));
+  const excluded = new Set(state.excluded);
+  const now = new Date();
+  const todo = (data?.awaiting ?? []).filter((r) => byId.has(r.influencerId) && !listed.has(r.influencerId) && !excluded.has(r.influencerId));
+
+  const add = (list: ReplyStatus[]) => {
+    const at = new Date().toISOString();
+    for (const r of list) dispatch({ type: "addRecontact", id: r.influencerId, note: `İlk mail ${fmtDay(r.sentAt)}, yanıt yok`, at });
+  };
+
+  let body: React.ReactNode;
+  if (readOnly) body = <p className="muted small">Bu hesap salt okunur.</p>;
+  else if (failed) body = <p className="muted small">Yanıt durumu okunamadı.</p>;
+  else if (!data) body = <p className="muted small">Yanıt durumu okunuyor…</p>;
+  else if (!data.connected) body = <p className="muted small">Gmail bağlı değil. Önce Gmail&apos;i bağla; yanıt takibi için mail üstbilgilerini okuma izni de istenir (içerik okunmaz).</p>;
+  else if (data.total === 0) body = <p className="muted small">Henüz gönderilmiş mail yok. İlk mailler gidince yanıtlar burada izlenir.</p>;
+  else
+    body = (
+      <>
+        <p className="small">
+          <b className="num">{data.total}</b> hesaba mail gitti · <b className="num">{data.replied}</b> yanıt verdi
+          {data.bounced > 0 && <> · <b className="num">{data.bounced}</b> mail ulaşmadı</>} · <b className="num">{data.awaiting.length}</b> hesap {FOLLOWUP_DAYS}+ gündür yanıt vermedi
+        </p>
+        {todo.length > 0 && (
+          <>
+            <ul className="recontact-list">
+              {todo.map((r) => {
+                const inf = byId.get(r.influencerId);
+                return inf ? (
+                  <li key={r.influencerId} className="row recontact-row">
+                    <span className="avatar" aria-hidden="true">{inf.name.slice(0, 1)}</span>
+                    <div className="who">
+                      <p className="who-name">{inf.name}</p>
+                      <p className="who-sub">
+                        <span>{inf.email ?? "mail yok"}</span>
+                        <span className="dotsep">·</span>
+                        <span>{daysSince(r.sentAt, now)} gün önce yazıldı, yanıt yok</span>
+                      </p>
+                    </div>
+                    <div className="recontact-actions">
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => add([r])}>
+                        <Icon name="plus" size={15} /> Listeye ekle
+                      </button>
+                    </div>
+                  </li>
+                ) : null;
+              })}
+            </ul>
+            {todo.length > 1 && (
+              <div className="actions">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => add(todo)}>
+                  <Icon name="plus" size={15} /> Hepsini listeye ekle ({todo.length})
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </>
+    );
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h2 className="h2">Yanıt takibi</h2>
+        <button type="button" className="btn btn-ghost btn-sm" disabled={busy || readOnly || !data?.connected} onClick={sync}>
+          <Icon name="repeat" size={15} /> {busy ? "Kontrol ediliyor…" : "Yanıtları kontrol et"}
+        </button>
+      </div>
+      {body}
+      {msg && <p className="muted small" role="status">{msg}</p>}
+      <p className="muted small">Kontrol yalnızca okur: hiçbir mail göndermez, silmez ya da okundu yapmaz. Yanıt gelenin durumu “görüşülüyor” olur; otomatik yanıtlar sayılmaz.</p>
+    </div>
   );
 }
 

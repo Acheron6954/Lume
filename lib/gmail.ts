@@ -1,10 +1,14 @@
-// Gmail ile gönderim: yalnızca gmail.send izni. Saf fonksiyonlar + enjekte edilebilir fetch (test edilebilir).
+// Gmail ile gönderim (gmail.send) ve yanıt takibi için üstbilgi okuma (gmail.metadata). Saf fonksiyonlar + enjekte edilebilir fetch (test edilebilir).
 // Bu dosya hiçbir şeyi kendiliğinden göndermez; gönderimi yalnızca /api/gmail/send çağırır.
 import { isEmail } from "./influencer";
+import type { GmailThread } from "./replies";
 
 export const DAILY_LIMIT = 30; // günlük gönderim sınırı (İstanbul gününe göre)
 export const MAX_PER_REQUEST = 10; // tek istekte en çok bu kadar mail (60 sn sınırı için)
-export const SCOPE = "https://www.googleapis.com/auth/gmail.send openid email";
+// gmail.send: mail göndermek. gmail.metadata: yalnızca üstbilgi ve etiketleri okur (gövde okunamaz), yanıt takibi için.
+export const SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+export const METADATA_SCOPE = "https://www.googleapis.com/auth/gmail.metadata";
+export const SCOPE = `${SEND_SCOPE} ${METADATA_SCOPE} openid email`;
 
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 export type OAuthCfg = { clientId: string; clientSecret: string; redirectUri: string };
@@ -54,7 +58,7 @@ export async function exchangeCode(code: string, cfg: OAuthCfg, f: FetchFn = fet
   const email = emailFromIdToken(j.id_token);
   if (!refreshToken) throw new Error("no_refresh_token");
   if (!email) throw new Error("no_email");
-  if (typeof j.scope === "string" && !j.scope.includes("gmail.send")) throw new Error("scope_missing");
+  if (typeof j.scope === "string" && !(j.scope.includes(SEND_SCOPE) && j.scope.includes(METADATA_SCOPE))) throw new Error("scope_missing");
   return { refreshToken, email };
 }
 
@@ -93,17 +97,33 @@ export function buildRaw(from: string, m: Outgoing): string {
   return Buffer.from(lines.join("\r\n"), "utf8").toString("base64url");
 }
 
-export async function sendRaw(token: string, raw: string, f: FetchFn = fetch): Promise<string> {
+export async function sendRawFull(token: string, raw: string, f: FetchFn = fetch): Promise<{ id: string; threadId: string | null }> {
   const res = await f("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ raw }),
   });
-  const j = (await res.json().catch(() => ({}))) as { id?: unknown; error?: { message?: unknown } };
+  const j = (await res.json().catch(() => ({}))) as { id?: unknown; threadId?: unknown; error?: { message?: unknown } };
   if (!res.ok || typeof j.id !== "string") {
     throw new Error(typeof j.error?.message === "string" ? j.error.message : `gmail_http_${res.status}`);
   }
-  return j.id;
+  return { id: j.id, threadId: typeof j.threadId === "string" ? j.threadId : null };
+}
+
+export async function sendRaw(token: string, raw: string, f: FetchFn = fetch): Promise<string> {
+  return (await sendRawFull(token, raw, f)).id;
+}
+
+/** Bir konuşmayı yalnızca üstbilgi düzeyinde çeker (gmail.metadata yeter). Silinmişse null. */
+export async function fetchThread(token: string, threadId: string, f: FetchFn = fetch): Promise<GmailThread | null> {
+  if (!/^[0-9a-f]{6,32}$/i.test(threadId)) throw new Error("bad_thread_id");
+  const q = new URLSearchParams({ format: "metadata" });
+  for (const h of ["From", "Subject", "Auto-Submitted", "Precedence", "X-Autoreply", "X-Autorespond"]) q.append("metadataHeaders", h);
+  const res = await f(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?${q}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (res.status === 404) return null;
+  const j = (await res.json().catch(() => ({}))) as GmailThread & { error?: { message?: unknown } };
+  if (!res.ok) throw new Error(typeof j.error?.message === "string" ? j.error.message : `gmail_http_${res.status}`);
+  return j;
 }
 
 /** İstanbul (UTC+3, yaz saati yok) gününün başlangıcı, ISO. */

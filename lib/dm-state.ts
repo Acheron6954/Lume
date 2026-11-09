@@ -130,3 +130,100 @@ export function sanitizeDm(raw: unknown, known: ReadonlySet<string>): DmState {
   }
   return { template, items, ready: true };
 }
+
+/* ---------- Sunucuya kaydetme (Supabase) ---------- */
+
+export const DM_MAX_ITEMS = 500; // tek istekte en çok bu kadar kayıt
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const ID_RE = new RegExp(`^(${UUID}):(instagram|tiktok)$`, "i");
+
+const sig = (d: DmItem) => JSON.stringify([d.id, d.influencerId, d.channel, d.text, d.approved, d.sentAt ?? null, d.repliedAt ?? null, d.note]);
+
+/** Önceki ve şimdiki liste arasındaki fark: yazılacaklar ve silinecekler. */
+export function dmDiff(prev: readonly DmItem[], next: readonly DmItem[]): { upsert: DmItem[]; remove: string[] } {
+  const before = new Map(prev.map((d) => [d.id, sig(d)]));
+  const ids = new Set(next.map((d) => d.id));
+  return {
+    upsert: next.filter((d) => before.get(d.id) !== sig(d)),
+    remove: prev.filter((d) => !ids.has(d.id)).map((d) => d.id),
+  };
+}
+
+export type DmPatch = { upsert: DmItem[]; remove: string[]; template?: string };
+
+/** İstemciden gelen yamayı doğrular. Tek bir bozuk kayıt varsa tamamı reddedilir (null). */
+export function parseDmPatch(raw: unknown): DmPatch | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const up = o.upsert === undefined ? [] : o.upsert;
+  const rm = o.remove === undefined ? [] : o.remove;
+  if (!Array.isArray(up) || !Array.isArray(rm) || up.length > DM_MAX_ITEMS || rm.length > DM_MAX_ITEMS) return null;
+
+  const upsert: DmItem[] = [];
+  for (const r of up) {
+    if (!r || typeof r !== "object") return null;
+    const x = r as Record<string, unknown>;
+    const m = typeof x.id === "string" ? ID_RE.exec(x.id) : null;
+    if (!m) return null;
+    const influencerId = m[1].toLowerCase();
+    const channel = m[2].toLowerCase() as DmChannel;
+    if (x.influencerId !== influencerId || x.channel !== channel) return null;
+    if (typeof x.text !== "string" || x.text.length > DM_LIMIT) return null;
+    if (typeof x.note !== "string" || x.note.length > DM_NOTE_LIMIT) return null;
+    if (x.sentAt !== undefined && !valid(x.sentAt)) return null;
+    if (x.repliedAt !== undefined && !valid(x.repliedAt)) return null;
+    const sentAt = x.sentAt as string | undefined;
+    const repliedAt = sentAt ? (x.repliedAt as string | undefined) : undefined;
+    upsert.push({ id: dmId(influencerId, channel), influencerId, channel, text: x.text, approved: x.approved === true || !!sentAt, sentAt, repliedAt, note: x.note });
+  }
+  if (new Set(upsert.map((d) => d.id)).size !== upsert.length) return null;
+
+  const remove: string[] = [];
+  for (const id of rm) {
+    if (typeof id !== "string" || !ID_RE.test(id)) return null;
+    remove.push(id.toLowerCase());
+  }
+
+  let template: string | undefined;
+  if (o.template !== undefined) {
+    if (typeof o.template !== "string" || !o.template.trim() || o.template.length > DM_LIMIT * 2) return null;
+    template = o.template;
+  }
+  return { upsert, remove, ...(template !== undefined ? { template } : {}) };
+}
+
+export type DmRow = {
+  id: string;
+  influencer_id: string;
+  channel: string;
+  text: string | null;
+  approved: boolean | null;
+  sent_at: string | null;
+  replied_at: string | null;
+  note: string | null;
+};
+
+export function itemToRow(d: DmItem) {
+  return {
+    id: d.id,
+    influencer_id: d.influencerId,
+    channel: d.channel,
+    text: d.text,
+    approved: d.approved,
+    sent_at: d.sentAt ?? null,
+    replied_at: d.repliedAt ?? null,
+    note: d.note,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export const rowToItem = (r: DmRow): DmItem => ({
+  id: r.id,
+  influencerId: r.influencer_id,
+  channel: r.channel as DmChannel,
+  text: r.text ?? "",
+  approved: r.approved === true,
+  sentAt: r.sent_at ?? undefined,
+  repliedAt: r.replied_at ?? undefined,
+  note: r.note ?? "",
+});
