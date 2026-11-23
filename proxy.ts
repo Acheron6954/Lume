@@ -26,6 +26,17 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Panel erişimi olmayan üye: panel sayfaları ve API'ler onun için yoktur (404). Giriş/kayıt sayfası ana sayfaya döner.
+  if (session?.role === "member") {
+    if (onLogin) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.rewrite(new URL("/_yok", request.url));
+  }
+
   // Salt okunur hesap: sayfaları görür ama hiçbir API'yi (tarama, aday arama) çalıştıramaz.
   if (session?.role === "viewer" && request.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Bu hesap salt okunur." }, { status: 403 });

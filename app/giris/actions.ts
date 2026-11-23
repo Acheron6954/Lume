@@ -41,9 +41,12 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   let role = envRole;
   if (!role && username.includes("@")) {
     const member = await checkMember(username, password);
+    // Panel erişimi verilmemiş üye siteye girer ama paneli görmez.
     if (member?.status === "pending") {
-      return { error: "Hesabın henüz onaylanmadı. Onaylandığında giriş yapabilirsin." };
+      role = "member";
+      sessionUser = member.email;
     }
+    // Engellenen hesap ("rejected") hiç giriş yapamaz; mesaj aynı kalır, hesabın varlığı anlaşılmasın.
     if (member?.status === "approved") {
       role = member.role;
       sessionUser = member.email;
@@ -66,7 +69,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     path: "/",
     // maxAge yok: oturum çerezi, tarayıcı tamamen kapanınca silinir (sunucu tarafı süre yine token içinde).
   });
-  redirect("/panel");
+  redirect(role === "member" ? "/" : "/panel");
 }
 
 export async function logout() {

@@ -20,7 +20,7 @@ export default function RegisterPage() {
         <p className="login-sub">Kreatör paneli üyeliği</p>
         <RegisterForm />
         <p className="login-fine">
-          Üyelikler elle onaylanır; onaydan önce giriş yapılamaz. Zaten hesabın var mı? <Link href="/giris">Giriş yap</Link>
+          Zaten hesabın var mı? <Link href="/giris">Giriş yap</Link>
         </p>
         <p className="login-fine">
           <Link href="/">← Ana sayfaya dön</Link>

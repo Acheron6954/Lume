@@ -211,7 +211,7 @@ function ApplyForm() {
   );
 }
 
-export function Landing() {
+export function Landing({ account = null }: { account?: { user: string; panel: boolean } | null }) {
   const { wrap, disk, disk2, dark } = useBlackHole();
   const [open, setOpen] = useState(0);
 
@@ -237,8 +237,17 @@ export function Landing() {
             <a href="#sss">SSS</a>
           </div>
           <div className="s-account">
-            <Link href="/giris" className="s-btn s-btn-line">Giriş yap</Link>
-            <Link href="/kayit" className="s-btn s-btn-dark s-hide-sm">Üye ol</Link>
+            {account ? (
+              <>
+                {account.panel && <Link href="/panel" className="s-btn s-btn-dark">Kreatör paneli</Link>}
+                <a href="/api/cikis" className="s-btn s-btn-line" title={account.user}>Çıkış</a>
+              </>
+            ) : (
+              <>
+                <Link href="/giris" className="s-btn s-btn-line">Giriş yap</Link>
+                <Link href="/kayit" className="s-btn s-btn-dark s-hide-sm">Üye ol</Link>
+              </>
+            )}
           </div>
         </nav>
 
@@ -347,8 +356,8 @@ export function Landing() {
               <a id="kvkk" href="#kvkk">KVKK Aydınlatma Metni</a>
               <a href="#gizlilik">Gizlilik</a>
               <a href="#sartlar">Şartlar</a>
-              <Link href="/giris">Giriş yap</Link>
-              <Link href="/kayit">Üye ol</Link>
+              {!account && <Link href="/giris">Giriş yap</Link>}
+              {!account && <Link href="/kayit">Üye ol</Link>}
             </nav>
             <span>© 2026 L&apos;UME</span>
           </footer>

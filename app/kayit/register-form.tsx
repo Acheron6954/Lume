@@ -9,7 +9,7 @@ export function RegisterForm() {
   if (state.done) {
     return (
       <p className="form-ok" role="status">
-        Kaydın alındı. Hesabın onaylandığında bu e-posta ve şifreyle giriş yapabilirsin.
+        Kaydın alındı. Artık bu e-posta ve şifreyle giriş yapabilirsin.
       </p>
     );
   }

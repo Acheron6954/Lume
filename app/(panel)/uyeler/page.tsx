@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Üyeler" };
 export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Istanbul" });
-const STATUS: Record<Member["status"], string> = { pending: "Onay bekliyor", approved: "Onaylı", rejected: "Reddedildi" };
+const STATUS: Record<Member["status"], string> = { pending: "Panel erişimi yok", approved: "Panel erişimi var", rejected: "Engellendi" };
 
 function Row({ m }: { m: Member }) {
   return (
@@ -27,10 +27,10 @@ function Row({ m }: { m: Member }) {
       </div>
       <form action={decide} className="recontact-actions" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         <input type="hidden" name="id" value={m.id} />
-        {m.status !== "approved" && (
+        {m.status === "pending" && (
           <>
-            <button type="submit" name="action" value="viewer" className="btn btn-primary btn-sm">Onayla (salt okunur)</button>
-            <button type="submit" name="action" value="admin" className="btn btn-ghost btn-sm">Yönetici olarak onayla</button>
+            <button type="submit" name="action" value="viewer" className="btn btn-primary btn-sm">Erişim ver (salt okunur)</button>
+            <button type="submit" name="action" value="admin" className="btn btn-ghost btn-sm">Yönetici olarak erişim ver</button>
           </>
         )}
         {m.status === "approved" && m.role === "viewer" && (
@@ -39,8 +39,14 @@ function Row({ m }: { m: Member }) {
         {m.status === "approved" && m.role === "admin" && (
           <button type="submit" name="action" value="viewer" className="btn btn-ghost btn-sm">Salt okunur yap</button>
         )}
-        {m.status !== "rejected" && (
-          <button type="submit" name="action" value="reject" className="btn btn-ghost btn-sm">{m.status === "approved" ? "Erişimi kaldır" : "Reddet"}</button>
+        {m.status === "approved" && (
+          <button type="submit" name="action" value="revoke" className="btn btn-ghost btn-sm">Erişimi kaldır</button>
+        )}
+        {m.status === "pending" && (
+          <button type="submit" name="action" value="reject" className="btn btn-ghost btn-sm">Hesabı engelle</button>
+        )}
+        {m.status === "rejected" && (
+          <button type="submit" name="action" value="revoke" className="btn btn-ghost btn-sm">Engeli kaldır</button>
         )}
       </form>
     </li>
@@ -61,19 +67,19 @@ export default async function MembersPage() {
         </div>
       </header>
       {error && <p className="issue" role="alert">Üye listesi okunamadı.</p>}
-      <section className="card rise" style={d(100)} aria-label="Onay bekleyenler">
+      <section className="card rise" style={d(100)} aria-label="Panel erişimi olmayanlar">
         <div className="card-head">
-          <h2 className="h2">Onay bekleyenler</h2>
+          <h2 className="h2">Panel erişimi olmayanlar</h2>
           <span className="pill">{pending.length}</span>
         </div>
-        {pending.length === 0 ? <p className="muted small">Bekleyen üyelik yok.</p> : <ul className="recontact-list">{pending.map((m) => <Row key={m.id} m={m} />)}</ul>}
+        {pending.length === 0 ? <p className="muted small">Erişim bekleyen üye yok.</p> : <ul className="recontact-list">{pending.map((m) => <Row key={m.id} m={m} />)}</ul>}
       </section>
-      <section className="card rise" style={d(180)} aria-label="Tüm üyeler">
+      <section className="card rise" style={d(180)} aria-label="Erişimi olanlar ve engellenenler">
         <div className="card-head">
-          <h2 className="h2">Onaylanan ve reddedilenler</h2>
+          <h2 className="h2">Erişimi olanlar ve engellenenler</h2>
         </div>
-        {others.length === 0 ? <p className="muted small">Henüz karar verilmiş üyelik yok.</p> : <ul className="recontact-list">{others.map((m) => <Row key={m.id} m={m} />)}</ul>}
-        <p className="muted small">Salt okunur üye her şeyi görür ama hiçbir şeyi değiştiremez ve kimseye mail/DM gönderemez. Erişimi kaldırılan üye bir sonraki sayfa açılışında dışarıda kalır.</p>
+        {others.length === 0 ? <p className="muted small">Henüz erişim verilen ya da engellenen üye yok.</p> : <ul className="recontact-list">{others.map((m) => <Row key={m.id} m={m} />)}</ul>}
+        <p className="muted small">Kayıt olan herkes siteye giriş yapabilir; paneli yalnızca erişim verdiğin üyeler görür. Erişim verdiğin üye paneli bir sonraki girişinde görür. Salt okunur üye her şeyi görür ama hiçbir şeyi değiştiremez ve kimseye mail/DM gönderemez. Erişimi kaldırılan üye bir sonraki sayfa açılışında paneli göremez; engellenen hesap hiç giriş yapamaz.</p>
       </section>
     </div>
   );

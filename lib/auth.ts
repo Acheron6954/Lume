@@ -7,8 +7,9 @@ export const SESSION_MAX_AGE = 60 * 60 * 12; // saniye: 12 saat
 
 const SCRYPT = { N: 16384, r: 8, p: 1 } as const;
 
-/** admin: her şeyi yapar. viewer: her şeyi görür, hiçbir şeyi değiştiremez ve kimseyle iletişime geçemez. */
-export type Role = "admin" | "viewer";
+/** admin: her şeyi yapar. viewer: her şeyi görür, hiçbir şeyi değiştiremez ve kimseyle iletişime geçemez.
+ * member: siteye giriş yapmış ama panel erişimi verilmemiş üye; paneli hiç görmez. */
+export type Role = "admin" | "viewer" | "member";
 
 export type AuthConfig = {
   user: string;
@@ -93,7 +94,7 @@ export function readSession(token: string | undefined, secret: string, now = Dat
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (typeof data.u !== "string" || typeof data.exp !== "number" || data.exp < now) return null;
     // "r" yoksa token rol eklenmeden önce üretilmiştir; o dönemde tek kullanıcı vardı (admin).
-    return { user: data.u, role: data.r === "viewer" ? "viewer" : "admin" };
+    return { user: data.u, role: data.r === "viewer" ? "viewer" : data.r === "member" ? "member" : "admin" };
   } catch {
     return null;
   }

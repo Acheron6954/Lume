@@ -17,10 +17,10 @@ export default function LoginPage() {
           <span className="orb orb-lg" aria-hidden="true" />
           <h1 className="wordmark wordmark-lg">L&apos;UME</h1>
         </div>
-        <p className="login-sub">Kreatör paneline giriş</p>
+        <p className="login-sub">Hesabına giriş yap</p>
         <LoginForm />
         <p className="login-fine">
-          Hesabın yok mu? <Link href="/kayit">Üye ol</Link>. Üyelikler onaylandıktan sonra giriş açılır.
+          Hesabın yok mu? <Link href="/kayit">Üye ol</Link>.
         </p>
         <p className="login-fine">
           <Link href="/">← Ana sayfaya dön</Link>

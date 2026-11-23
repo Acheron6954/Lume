@@ -103,3 +103,9 @@ test("viewer ayarı: ad yönetici adıyla aynıysa yok sayılır, eksikse tanım
   assert.deepEqual(readConfig({ ...base, LUME_VIEWER_USER: "user", LUME_VIEWER_PASS_HASH: "scrypt:c:d" })?.viewer, { user: "user", passHash: "scrypt:c:d" });
   assert.equal(readConfig({ ...base, LUME_VIEWER_USER: "UMUT", LUME_VIEWER_PASS_HASH: "scrypt:c:d" })?.viewer, undefined, "admin adı viewer olamaz");
 });
+
+test("panel erişimi olmayan üye rolü imzalı taşınır", () => {
+  const now = 1_000_000;
+  const tok = signSession("ali@x.com", SECRET, now, "member");
+  assert.deepEqual(readSession(tok, SECRET, now + 1000), { user: "ali@x.com", role: "member" });
+});
