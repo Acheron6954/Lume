@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useMemo, useReducer, useState, type Dispatch, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, type Dispatch, type ReactNode } from "react";
 import { warningsOf, type Influencer, type Warning } from "@/lib/influencer";
 import { initialState, reduce, sanitize, type Action, type PanelState } from "@/lib/panel-state";
 
@@ -18,6 +18,9 @@ type Store = {
 
 const Ctx = createContext<Store | null>(null);
 
+type Local = { s: PanelState; hydrated: boolean };
+type LocalAction = Action | { type: "ready" };
+
 export function PanelProvider({
   influencers,
   loadError = null,
@@ -30,8 +33,15 @@ export function PanelProvider({
   children: ReactNode;
 }) {
   const known = useMemo<ReadonlySet<string>>(() => new Set(influencers.map((i) => i.id)), [influencers]);
-  const [state, rawDispatch] = useReducer((s: PanelState, a: Action) => reduce(s, a, known), initialState);
-  const [hydrated, setHydrated] = useState(false);
+  // Panel durumu ve "tarayıcı kaydı okundu mu" bilgisi tek reducer'da: ikisi aynı anda güncellenir.
+  const [{ s: state, hydrated }, rawDispatch] = useReducer(
+    (l: Local, a: LocalAction): Local => {
+      if (a.type === "ready") return l.hydrated ? l : { ...l, hydrated: true };
+      const next = reduce(l.s, a, known);
+      return a.type === "hydrate" ? { s: next, hydrated: true } : next === l.s ? l : { ...l, s: next };
+    },
+    { s: initialState, hydrated: false },
+  );
   // Salt okunurda hiçbir eylem state'e ulaşmaz (arayüzdeki kapalı düğmelere ek, ikinci kilit).
   const dispatch = useMemo<Dispatch<Action>>(() => (readOnly ? () => {} : rawDispatch), [readOnly]);
 
@@ -39,14 +49,14 @@ export function PanelProvider({
     // Salt okunur hesap yöneticinin seçimlerini okumaz ve üzerine yazmaz: temiz, varsayılan görünüm.
     // Veri yüklenemediyse (known boş) kayıtlı seçimleri silmemek için de hydrate etme.
     if (loadError || readOnly) {
-      setHydrated(true);
+      rawDispatch({ type: "ready" });
       return;
     }
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) rawDispatch({ type: "hydrate", state: sanitize(JSON.parse(raw), known) });
     } catch {}
-    setHydrated(true);
+    rawDispatch({ type: "ready" });
   }, [known, loadError, readOnly]);
 
   useEffect(() => {

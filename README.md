@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# L'UME — Kreatör sitesi ve paneli
 
-## Getting Started
+lume1.com.tr'nin kaynak kodu. Next.js 16 (App Router) + Supabase, Vercel'de yayında.
 
-First, run the development server:
+- **Herkese açık site** (`/`): kreatör programının tanıtımı ve başvuru formu.
+- **Üyelik** (`/kayit`, `/giris`): kayıt olan herkes giriş yapar. Kreatör paneline yalnızca site sahibinin
+  Üyeler sayfasından erişim verdiği üyeler girebilir; diğerleri paneli hiç görmez.
+- **Kreatör paneli** (`/panel`, `/influencerlar`, `/mailler`, `/dm`, `/basvurular`, `/uyeler`): influencer bulma,
+  tarama, onaylı mail/DM, başvurular ve üye yönetimi.
+
+Kural: hiçbir mail ya da DM, site sahibinin son onayı olmadan gönderilmez.
+
+## Yerelde çalıştırma
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ayarlar `.env.local` dosyasında (git'e girmez). Eksik anahtarlar dosyada boş satır olarak işaretli;
+değerleri Vercel > Project > Settings > Environment Variables'dan kopyala.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Yönetici şifresini değiştirmek: `npm run hash -- "yeni-uzun-sifre"` çıktısındaki `LUME_PASS_HASH`
+satırını hem `.env.local`'e hem Vercel'e yaz.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Kontroller
 
-## Learn More
+```bash
+npx tsc --noEmit
+npm run lint
+node --import ./tests/register.mjs --test tests/*.test.mts
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Yapı
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Klasör | İçerik |
+|---|---|
+| `app/` | Sayfalar ve API rotaları (`app/(panel)` = kreatör paneli) |
+| `components/` | Arayüz bileşenleri (`components/site` = herkese açık site) |
+| `lib/` | Oturum, Supabase, Gmail, Instagram, arama ve tarama mantığı |
+| `sql/` | Supabase tablo betikleri |
+| `tests/` | Birim testleri |
+| `proxy.ts` | Oturum ve erişim kontrolü (Next 16'da middleware) |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Geliştirme geçmişi: `KATKI.md`.

@@ -25,6 +25,16 @@ tarafından, ne zaman geliştirildiğini belgelemek için tutulur. Kaynak: `git 
 | 2026-10-18 | DM Kontrol sayfası: yarı otomatik Instagram/TikTok DM taslağı |
 | 2026-10-18 | Gmail bağlantısı: OAuth ile bağlama ve onaylı mail gönderimi |
 | 2026-10-19 | 404 sayfası, robots.txt |
+| 2026-10-19 | KATKI.md: geliştirme katkı kaydı |
+| 2026-10-19 | Güvenlik başlıkları: CSP, HSTS, X-Frame-Options, Permissions-Policy |
+| 2026-11-09 | Yanıt takibi (gmail.metadata) ve DM kayıtlarının Supabase'e taşınması |
+| 2026-11-09 | Gmail bağlama: hata nedeni panelde, Safari için Google dönüş ara sayfası |
+| 2026-11-09 | SQL: gmail_auth, sent_mail, dm tabloları için sunucu yetkileri |
+| 2026-11-09 | Herkese açık kreatör sitesi: tanıtım sayfası, kreatör başvuru formu, üye ol / giriş |
+| 2026-11-09 | Panelde Başvurular ve Üyeler sayfaları; onaylı panel erişimi |
+| 2026-11-23 | Site herkese açık: kayıtlı üye giriş yapar, panel yalnızca erişim verilen üyelere görünür |
+| 2026-11-23 | Kayıt sonrası otomatik giriş; Üyeler sayfasında erişim ver / kaldır / engelle |
+| 2026-11-23 | Bakım: lint düzeltmeleri, yerel ortam ayar şablonu, README |
 
 ## Not
 

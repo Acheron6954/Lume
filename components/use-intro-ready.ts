@@ -1,23 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+// Açılış animasyonu bitince <html> etiketine "intro-done" sınıfı eklenir; bu kanca o sınıfı izler.
+function subscribe(onChange: () => void): () => void {
+  const mo = new MutationObserver(onChange);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => mo.disconnect();
+}
+const isDone = () => document.documentElement.classList.contains("intro-done");
 
 /** Açılış animasyonu bitip site görünür olduğunda true olur (animasyon yoksa hemen). */
 export function useIntroReady(): boolean {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const el = document.documentElement;
-    if (el.classList.contains("intro-done")) {
-      setReady(true);
-      return;
-    }
-    const mo = new MutationObserver(() => {
-      if (el.classList.contains("intro-done")) {
-        setReady(true);
-        mo.disconnect();
-      }
-    });
-    mo.observe(el, { attributes: true, attributeFilter: ["class"] });
-    return () => mo.disconnect();
-  }, []);
-  return ready;
+  return useSyncExternalStore(subscribe, isDone, () => false);
 }

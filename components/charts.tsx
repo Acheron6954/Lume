@@ -10,16 +10,13 @@ export function CountUp({ value, ms = 1100 }: { value: number; ms?: number }) {
   const from = useRef(0);
   useEffect(() => {
     if (!ready) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      from.current = value;
-      setShown(value);
-      return;
-    }
+    // Hareket azaltma açıksa sayma yok: ilk karede doğrudan hedef değer gösterilir.
+    const dur = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ms;
     const start = performance.now();
     const a = from.current;
     let raf = 0;
     const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / ms);
+      const p = dur === 0 ? 1 : Math.min(1, (now - start) / dur);
       setShown(Math.round(a + (value - a) * (1 - Math.pow(1 - p, 3))));
       if (p < 1) raf = requestAnimationFrame(tick);
       else from.current = value;
