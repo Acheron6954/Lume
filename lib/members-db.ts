@@ -8,13 +8,17 @@ export type Member = { id: string; email: string; name: string; status: MemberSt
 // Kullanıcı bulunamasa da şifre kontrolü çalışsın diye (süre farkından ipucu çıkmasın) sabit bir hash.
 const DUMMY_HASH = hashPassword("lume-dummy-password-never-used");
 
-/** Yeni kayıt "pending" olarak eklenir. Adres zaten varsa sessizce hiçbir şey yapmaz (kim kayıtlı sızmasın). */
-export async function registerMember(r: Registration): Promise<"ok" | "error"> {
+/** Yeni kayıt "pending" (panel erişimi yok) olarak eklenir. Adres zaten varsa hiçbir şey değişmez: "exists". */
+export async function registerMember(r: Registration): Promise<"created" | "exists" | "error"> {
   const db = adminClient();
   if (!db) return "error";
   const { error } = await db.from("panel_members").insert({ email: r.email, name: r.name, pass_hash: hashPassword(r.password), kvkk_at: new Date().toISOString() });
-  if (error && error.code !== "23505") return "error";
-  return "ok";
+  if (error?.code === "23505") return "exists";
+  if (error) {
+    console.error("kayit: kayıt hatası", error.code);
+    return "error";
+  }
+  return "created";
 }
 
 /** E-posta + şifre doğruysa üyenin durumunu ve rolünü döner; değilse null. */

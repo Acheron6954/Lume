@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useActionState } from "react";
 import { MIN_PASSWORD } from "@/lib/members";
 import { register, type RegisterState } from "./actions";
@@ -38,7 +37,7 @@ export function RegisterForm() {
       <label className="kvkk-line">
         <input type="checkbox" name="kvkk" required />
         <span>
-          <Link href="/#kvkk">KVKK Aydınlatma Metni</Link>&apos;ni okudum; üyelik başvurumun değerlendirilmesi için verilerimin işlenmesine onay veriyorum.
+          <strong>KVKK Aydınlatma Metni</strong>&apos;ni okudum; üyelik başvurumun değerlendirilmesi için verilerimin işlenmesine onay veriyorum.
         </span>
       </label>
       <p className="form-error" role="alert" aria-live="polite">

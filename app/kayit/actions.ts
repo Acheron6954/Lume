@@ -1,9 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
-import { lockedFor, recordFail } from "@/lib/auth";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { SESSION_COOKIE, lockedFor, readConfig, recordFail, signSession } from "@/lib/auth";
 import { parseRegistration } from "@/lib/members";
-import { registerMember } from "@/lib/members-db";
+import { checkMember, registerMember } from "@/lib/members-db";
 
 export type RegisterState = { error?: string; done?: boolean };
 
@@ -30,6 +31,19 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
   recordFail(`reg:${ip}`, REG_LIMIT);
   const res = await registerMember(parsed.value);
   if (res === "error") return { error: "Kayıt şu an alınamadı. Biraz sonra tekrar dene." };
-  // Adres zaten kayıtlı olsa da aynı mesaj: kimin kayıtlı olduğu dışarıdan anlaşılmasın.
-  return { done: true };
+
+  // Hesap oluştuysa (ya da adres zaten bu şifreyle kayıtlıysa) doğrudan giriş yapılır.
+  // Adres başka bir şifreyle kayıtlıysa giriş yapılmaz ve yine aynı mesaj döner: kimin kayıtlı olduğu dışarıdan anlaşılmaz.
+  const cfg = readConfig();
+  const member = res === "created" ? { status: "pending" as const, role: "viewer" as const, email: parsed.value.email } : await checkMember(parsed.value.email, parsed.value.password);
+  if (!cfg || !member || member.status === "rejected") return { done: true };
+  const role = member.status === "approved" ? member.role : "member";
+  const store = await cookies();
+  store.set(SESSION_COOKIE, signSession(member.email, cfg.secret, Date.now(), role), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+  redirect(role === "member" ? "/" : "/panel");
 }
